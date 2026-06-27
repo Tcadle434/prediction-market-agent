@@ -1,0 +1,22 @@
+{
+  "name": "prediction-market-agent",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Lykos — a prediction-market research agent with a RAG pipeline and a calibration eval harness.",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@10.25.0",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  }
+}

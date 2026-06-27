@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+*.tsbuildinfo
+
+# env / secrets — never commit real keys
+.env
+.env.local
+.env.*.local
+
+# test / coverage
+coverage/
+
+# python (eval stats + plots live here later)
+__pycache__/
+.venv/
+*.pyc
+
+# caches (fetched markets/evidence get cached here so we don't re-hit APIs)
+.turbo/
+data/cache/
+
+# logs
+*.log
+
+# os
+.DS_Store

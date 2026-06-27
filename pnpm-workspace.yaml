@@ -1,0 +1,6 @@
+# Defines which folders pnpm treats as workspace packages.
+# Each folder matching these globs that contains a package.json becomes a
+# package you can build, test, and depend on from the other packages.
+packages:
+  - "packages/*"
+  - "apps/*"
