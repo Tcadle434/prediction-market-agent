@@ -26,24 +26,24 @@ describe("fixedChunker", () => {
 		);
 	});
 
-	it("returns a single chunk when the document fits in one window", () => {
-		const chunks = fixedChunker({ targetTokens: 100 }).chunk(
+	it("returns a single chunk when the document fits in one window", async () => {
+		const chunks = await fixedChunker({ targetTokens: 100 }).chunk(
 			evidenceWith(nWords(5)),
 		);
 		expect(chunks).toHaveLength(1);
 		expect(chunks[0]!.text).toBe(nWords(5));
 	});
 
-	it("returns no chunks for blank content", () => {
-		expect(fixedChunker().chunk(evidenceWith("   \n  "))).toEqual([]);
+	it("returns no chunks for blank content", async () => {
+		expect(await fixedChunker().chunk(evidenceWith("   \n  "))).toEqual([]);
 	});
 
-	it("partitions words with no repetition when overlap is 0", () => {
+	it("partitions words with no repetition when overlap is 0", async () => {
 		// Arrange — 25 one-token words, 10-token windows
 		const chunker = fixedChunker({ targetTokens: 10, overlapTokens: 0 });
 
 		// Act
-		const chunks = chunker.chunk(evidenceWith(nWords(25)));
+		const chunks = await chunker.chunk(evidenceWith(nWords(25)));
 
 		// Assert — concatenating the chunks reproduces the original word sequence exactly
 		const rejoined = chunks.map((c) => c.text).join(" ");
@@ -51,12 +51,12 @@ describe("fixedChunker", () => {
 		expect(chunks.length).toBeGreaterThan(1);
 	});
 
-	it("carries trailing words into the next window when overlap > 0", () => {
+	it("carries trailing words into the next window when overlap > 0", async () => {
 		// Arrange
 		const chunker = fixedChunker({ targetTokens: 10, overlapTokens: 4 });
 
 		// Act
-		const chunks = chunker.chunk(evidenceWith(nWords(25)));
+		const chunks = await chunker.chunk(evidenceWith(nWords(25)));
 
 		// Assert — the start of chunk 1 repeats the tail of chunk 0
 		const tail0 = chunks[0]!.text.split(" ").slice(-4);
@@ -64,9 +64,9 @@ describe("fixedChunker", () => {
 		expect(head1).toEqual(tail0);
 	});
 
-	it("keeps every chunk within the token budget", () => {
+	it("keeps every chunk within the token budget", async () => {
 		const targetTokens = 10;
-		const chunks = fixedChunker({ targetTokens, overlapTokens: 2 }).chunk(
+		const chunks = await fixedChunker({ targetTokens, overlapTokens: 2 }).chunk(
 			evidenceWith(nWords(50)),
 		);
 		for (const chunk of chunks) {
@@ -74,10 +74,11 @@ describe("fixedChunker", () => {
 		}
 	});
 
-	it("produces schema-valid chunks with sequential ids", () => {
-		const chunks = fixedChunker({ targetTokens: 10, overlapTokens: 0 }).chunk(
-			evidenceWith(nWords(30)),
-		);
+	it("produces schema-valid chunks with sequential ids", async () => {
+		const chunks = await fixedChunker({
+			targetTokens: 10,
+			overlapTokens: 0,
+		}).chunk(evidenceWith(nWords(30)));
 		chunks.forEach((chunk, i) => {
 			expect(() => ChunkSchema.parse(chunk)).not.toThrow();
 			expect(chunk.id).toBe(`ev1#${i}`);
@@ -85,10 +86,12 @@ describe("fixedChunker", () => {
 		});
 	});
 
-	it("is deterministic", () => {
+	it("is deterministic", async () => {
 		const chunker = fixedChunker({ targetTokens: 10, overlapTokens: 3 });
 		const evidence = evidenceWith(nWords(40));
-		expect(chunker.chunk(evidence)).toEqual(chunker.chunk(evidence));
+		expect(await chunker.chunk(evidence)).toEqual(
+			await chunker.chunk(evidence),
+		);
 	});
 
 	it("rejects an overlap that is not smaller than the target", () => {

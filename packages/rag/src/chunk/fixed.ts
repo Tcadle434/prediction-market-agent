@@ -40,7 +40,7 @@ export function fixedChunker(options: FixedChunkerOptions = {}): Chunker {
 
 	return {
 		name: `fixed(${targetTokens}/${overlapTokens})`,
-		chunk(evidence: Evidence): Chunk[] {
+		async chunk(evidence: Evidence): Promise<Chunk[]> {
 			const words = evidence.content.split(/\s+/).filter((w) => w.length > 0);
 			if (words.length === 0) return [];
 			const costs = words.map((w) => Math.max(1, estimateTokens(w)));

@@ -32,8 +32,10 @@ passage citations, dedup, and cross-market reuse, *not* by replacing Tavily.)
   pgvector; embed the question at query time to retrieve the best passages.
   - **Why embed at all:** passage-level `Citation`/`chunkId` for the groundedness eval, semantic
     **dedup** of syndicated news, and a reusable **cross-market corpus**.
-- **Chunkers (compare 2–3):** fixed-size, recursive/structure-aware, optional semantic — the
-  comparison *is* the learning, and retrieval-recall in evals picks the winner.
+- **Chunkers (compare):** our hand-rolled `fixed` + `recursive`, **plus** LangChain's
+  `RecursiveCharacterTextSplitter` and `TokenTextSplitter` as library baselines — the
+  comparison *is* the learning, and retrieval-recall in evals picks the winner. (See the
+  chunker decision below for why we add LangChain alongside rather than replacing.)
 - **Embeddings:** Voyage. **Vector store:** Postgres + pgvector via Docker, behind a small
   `VectorStore` interface (swappable).
 - **Retrieval:** top-k → reranker, plus a recency / time-decay weighting (fresh news ranks higher).
@@ -170,6 +172,7 @@ Each item lists **what**, **why deferred**, the **trigger** to do it, and **wher
 - **JSON cache for now** — snapshot replay, small N; SQLite when it grows (see D5).
 - **Python + hosted LangSmith** for the LLM-judge evals — ecosystem + interview relevance + a deliberate "I write Python too" signal.
 - **Two-stage retrieval** — Tavily for recall, pgvector for passage precision; embed document *chunks*, not the question. The embedding layer is justified by passage citations, dedup, and cross-market reuse (Tavily alone would be simpler but loses those).
+- **Chunkers: hand-rolled + LangChain baselines (add-alongside)** — we keep our own `fixed`/`recursive` chunkers (the from-scratch learning artifact) **and** add LangChain's `RecursiveCharacterTextSplitter` + `TokenTextSplitter` behind the same `Chunker` interface, so the eval benchmarks our splitters *against* the industry standard instead of replacing them. Surveyed the field first: LangChain.js is the de-facto default (its recursive splitter is what ours reimplements), LlamaIndex.TS is archived, benbrandt's `text-splitter` has no JS binding, Chonkie-js is pre-1.0 — none drop cleanly into our sync/pure/ESM contract, and recursive-512 is the production default that beats semantic chunking in benchmarks. Consequences: `Chunker.chunk` is **async** (LangChain's `splitText` returns a Promise). **Real tokenization** (js-tiktoken `cl100k_base`) lives in the LangChain chunkers via `lengthFunction`; our hand-rolled pair keep the `~4 chars/token` heuristic as a deliberate, documented baseline — so the comparison also measures *heuristic vs. real tokenizer*. `tokenCount` on a Chunk is recorded with whichever counter that chunker uses (see the `countTokens` seam in `chunk/common.ts`).
 - **Multi-modal evidence** — the agent forecasts from *news* (RAG) **and** *on-chain order flow* (a `getOrderFlow` tool, tool-first); the rationale must be grounded in both. Order flow explains *who* moved a price, so the agent can update without news and separate informed money from noise.
 - **Sequencing** — ship the core news + on-chain forecast loop first; the additional evidence modalities (D10–D13: cross-venue consensus, resolution scrutiny, category quant, order-book depth) come *after* the core loop works end-to-end.
 - **Agent runtime = TS + LangGraph.js + LangSmith** — the loop is a LangGraph.js `StateGraph` (typed state; `interrupt()` for the HITL approval gate) with LangSmith tracing; keeps the runtime in TS so it reuses `decideBet`/schemas/ingest with no re-port. Evals stay Python; **both trace to one LangSmith project**. (LangGraph is slightly heavy for the v1 linear loop but pays off with the HITL interrupt and the D10–D13 fan-out.)

@@ -8,7 +8,9 @@
  *
  * The payoff vs. the fixed chunker: chunks respect meaning boundaries, so a passage is less
  * likely to be cut mid-thought. The trade-off: no overlap, and the rejoin separator at merge
- * time is approximate. The eval decides which strategy retrieves better.
+ * time is approximate. The eval decides which strategy retrieves better. (LangChain's
+ * RecursiveCharacterTextSplitter, in langchain.ts, is the battle-tested version of this exact
+ * algorithm — with real tokenization and overlap — and is in the comparison set too.)
  */
 import type { Chunk, Evidence } from "@lykos/core";
 import { CHARS_PER_TOKEN, estimateTokens, toChunks } from "./common.js";
@@ -100,7 +102,7 @@ export function recursiveChunker(
 
 	return {
 		name: `recursive(${targetTokens})`,
-		chunk(evidence: Evidence): Chunk[] {
+		async chunk(evidence: Evidence): Promise<Chunk[]> {
 			const pieces = splitRecursive(evidence.content, separators, targetTokens);
 			return toChunks(evidence, pieces);
 		},

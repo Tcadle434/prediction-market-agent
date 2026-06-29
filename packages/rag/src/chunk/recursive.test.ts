@@ -19,19 +19,19 @@ describe("recursiveChunker", () => {
 		expect(recursiveChunker({ targetTokens: 256 }).name).toBe("recursive(256)");
 	});
 
-	it("returns a single chunk when the document fits the budget", () => {
-		const chunks = recursiveChunker({ targetTokens: 100 }).chunk(
+	it("returns a single chunk when the document fits the budget", async () => {
+		const chunks = await recursiveChunker({ targetTokens: 100 }).chunk(
 			evidenceWith("short text"),
 		);
 		expect(chunks).toHaveLength(1);
 		expect(chunks[0]!.text).toBe("short text");
 	});
 
-	it("returns no chunks for blank content", () => {
-		expect(recursiveChunker().chunk(evidenceWith("   "))).toEqual([]);
+	it("returns no chunks for blank content", async () => {
+		expect(await recursiveChunker().chunk(evidenceWith("   "))).toEqual([]);
 	});
 
-	it("breaks on paragraph boundaries when whole paragraphs fit", () => {
+	it("breaks on paragraph boundaries when whole paragraphs fit", async () => {
 		// Arrange — three ~6-token paragraphs; any two together exceed a 10-token budget
 		const p1 = "alpha bravo charlie delta";
 		const p2 = "echo foxtrot golf hotel";
@@ -39,7 +39,7 @@ describe("recursiveChunker", () => {
 		const content = [p1, p2, p3].join("\n\n");
 
 		// Act
-		const chunks = recursiveChunker({ targetTokens: 10 }).chunk(
+		const chunks = await recursiveChunker({ targetTokens: 10 }).chunk(
 			evidenceWith(content),
 		);
 
@@ -47,13 +47,13 @@ describe("recursiveChunker", () => {
 		expect(chunks.map((c) => c.text)).toEqual([p1, p2, p3]);
 	});
 
-	it("recurses into an oversized paragraph and stays within budget", () => {
+	it("recurses into an oversized paragraph and stays within budget", async () => {
 		// Arrange — one paragraph, several sentences, no blank-line breaks
 		const content = "alpha alpha. bravo bravo. charlie charlie. delta delta.";
 		const targetTokens = 5;
 
 		// Act
-		const chunks = recursiveChunker({ targetTokens }).chunk(
+		const chunks = await recursiveChunker({ targetTokens }).chunk(
 			evidenceWith(content),
 		);
 
@@ -64,12 +64,12 @@ describe("recursiveChunker", () => {
 		}
 	});
 
-	it("merges small adjacent pieces instead of over-fragmenting", () => {
+	it("merges small adjacent pieces instead of over-fragmenting", async () => {
 		// Arrange — 40 tiny single-token lines under a generous budget
 		const content = Array.from({ length: 40 }, () => "xx").join("\n");
 
 		// Act
-		const chunks = recursiveChunker({ targetTokens: 10 }).chunk(
+		const chunks = await recursiveChunker({ targetTokens: 10 }).chunk(
 			evidenceWith(content),
 		);
 
@@ -78,13 +78,13 @@ describe("recursiveChunker", () => {
 		expect(chunks.length).toBeLessThan(40);
 	});
 
-	it("produces schema-valid chunks with sequential ids", () => {
+	it("produces schema-valid chunks with sequential ids", async () => {
 		const content = [
 			"alpha bravo charlie delta",
 			"echo foxtrot golf hotel",
 			"india juliet kilo lima",
 		].join("\n\n");
-		const chunks = recursiveChunker({ targetTokens: 10 }).chunk(
+		const chunks = await recursiveChunker({ targetTokens: 10 }).chunk(
 			evidenceWith(content),
 		);
 		chunks.forEach((chunk, i) => {
@@ -94,12 +94,14 @@ describe("recursiveChunker", () => {
 		});
 	});
 
-	it("is deterministic", () => {
+	it("is deterministic", async () => {
 		const chunker = recursiveChunker({ targetTokens: 8 });
 		const evidence = evidenceWith(
 			"alpha bravo. charlie delta. echo foxtrot. golf hotel india.",
 		);
-		expect(chunker.chunk(evidence)).toEqual(chunker.chunk(evidence));
+		expect(await chunker.chunk(evidence)).toEqual(
+			await chunker.chunk(evidence),
+		);
 	});
 
 	it("rejects a non-positive target", () => {
