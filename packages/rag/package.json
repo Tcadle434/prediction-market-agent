@@ -22,6 +22,7 @@
 		"@lykos/core": "workspace:*",
 		"@tavily/core": "^0.7.6",
 		"js-tiktoken": "^1.0.21",
+		"voyageai": "^0.4.0",
 		"zod": "^3.23.8"
 	}
 }
