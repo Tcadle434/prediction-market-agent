@@ -8,3 +8,4 @@
  */
 export * from "./store/vector-store.js";
 export * from "./store/memory.js";
+export * from "./chunk/index.js";
