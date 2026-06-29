@@ -16,25 +16,30 @@
 import { z } from "zod";
 
 const EnvSchema = z.object({
-  ANTHROPIC_API_KEY: z.string().optional(),
-  VOYAGE_API_KEY: z.string().optional(),
-  TAVILY_API_KEY: z.string().optional(),
-  DATABASE_URL: z.string().optional(),
-  POLYMARKET_GAMMA_URL: z.string().url().default("https://gamma-api.polymarket.com"),
+	ANTHROPIC_API_KEY: z.string().optional(),
+	VOYAGE_API_KEY: z.string().optional(),
+	TAVILY_API_KEY: z.string().optional(),
+	DATABASE_URL: z.string().optional(),
+	POLYMARKET_GAMMA_URL: z
+		.string()
+		.url()
+		.default("https://gamma-api.polymarket.com"),
 });
 
 export type Config = z.infer<typeof EnvSchema>;
 
 /** Parse + validate environment variables into a typed Config. */
-export function loadConfig(env: Record<string, string | undefined> = process.env): Config {
-  const parsed = EnvSchema.safeParse(env);
-  if (!parsed.success) {
-    const issues = parsed.error.issues
-      .map((i) => `  - ${i.path.join(".") || "(root)"}: ${i.message}`)
-      .join("\n");
-    throw new Error(`Invalid environment configuration:\n${issues}`);
-  }
-  return parsed.data;
+export function loadConfig(
+	env: Record<string, string | undefined> = process.env,
+): Config {
+	const parsed = EnvSchema.safeParse(env);
+	if (!parsed.success) {
+		const issues = parsed.error.issues
+			.map((i) => `  - ${i.path.join(".") || "(root)"}: ${i.message}`)
+			.join("\n");
+		throw new Error(`[CORE] Invalid environment configuration:\n${issues}`);
+	}
+	return parsed.data;
 }
 
 /**
@@ -44,8 +49,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
  *   const key = required(config.TAVILY_API_KEY, "TAVILY_API_KEY");
  */
 export function required<T>(value: T | undefined | null, name: string): T {
-  if (value === undefined || value === null || value === "") {
-    throw new Error(`Missing required config: ${name}. Add it to your .env (see .env.example).`);
-  }
-  return value;
+	if (value === undefined || value === null || value === "") {
+		throw new Error(
+			`[CORE] Missing required config: ${name}. Add it to your .env (see .env.example).`,
+		);
+	}
+	return value;
 }

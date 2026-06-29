@@ -13,8 +13,8 @@
 import type { Chunk, Evidence } from "@lykos/core";
 
 export interface Chunker {
-  /** Human-readable label, e.g. "fixed(512/64)" — used to tag comparison results. */
-  readonly name: string;
-  /** Split one document into ordered, non-empty chunks. */
-  chunk(evidence: Evidence): Chunk[];
+	/** Human-readable label, e.g. "fixed(512/64)" — used to tag comparison results. */
+	readonly name: string;
+	/** Split one document into ordered, non-empty chunks. */
+	chunk(evidence: Evidence): Chunk[];
 }

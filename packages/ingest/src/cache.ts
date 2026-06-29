@@ -3,9 +3,9 @@
  * harness can replay a fixed set. Snapshots are plain JSON under data/cache.
  * Would consider updating this to SQLlite but we just don't need for now.
  */
-import { readFile, writeFile, mkdir } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { MarketSchema, type Market } from "@lykos/core";
+import { type Market, MarketSchema } from "@lykos/core";
 
 /** Default cache root: <cwd>/data/cache. Apps run from the repo root. */
 export function defaultCacheDir(): string {

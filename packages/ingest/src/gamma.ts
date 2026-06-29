@@ -9,8 +9,9 @@
  * The response has ~80 fields; we declare only the ones we use. Zod strips the rest, and
  * most are optional so a slightly-different market doesn't fail the whole batch.
  */
-import { z } from "zod";
+
 import { loadConfig } from "@lykos/core";
+import { z } from "zod";
 
 export const GammaMarketSchema = z.object({
 	id: z.union([z.string(), z.number()]).transform((v) => String(v)),
@@ -65,7 +66,9 @@ export async function fetchGammaMarkets(
 	const res = await fetch(url);
 
 	if (!res.ok) {
-		throw new Error(`[INGEST] Gamma /markets failed: ${res.status} ${res.statusText}`);
+		throw new Error(
+			`[INGEST] Gamma /markets failed: ${res.status} ${res.statusText}`,
+		);
 	}
 	const body: unknown = await res.json();
 

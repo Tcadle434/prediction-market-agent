@@ -6,6 +6,7 @@
  * embed/rerank clients, retrieval orchestration, and the pgvector store. For now it
  * exposes the storage seam and its in-memory implementation.
  */
-export * from "./store/vector-store.js";
-export * from "./store/memory.js";
+
 export * from "./chunk/index.js";
+export * from "./store/memory.js";
+export * from "./store/vector-store.js";
