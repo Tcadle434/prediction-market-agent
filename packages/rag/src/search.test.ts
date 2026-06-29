@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
 	searchEvidence,
 	type TavilyResult,
+	type TavilySearch,
 	tavilyResultToEvidence,
 } from "./search.js";
 
@@ -20,9 +21,15 @@ function raw(overrides: Partial<TavilyResult> = {}): TavilyResult {
 	};
 }
 
-/** A fake search function returning a canned response — keeps tests fully offline. */
-function fakeSearch(results: unknown[]): (query: string) => Promise<unknown> {
-	return async () => ({ results });
+/** A fake search function returning a canned (typed) response — keeps tests fully offline. */
+function fakeSearch(results: TavilyResult[]): TavilySearch {
+	return async () => ({
+		query: "q",
+		responseTime: 0,
+		images: [],
+		results,
+		requestId: "test",
+	});
 }
 
 describe("tavilyResultToEvidence", () => {
@@ -43,13 +50,13 @@ describe("tavilyResultToEvidence", () => {
 	});
 
 	it("falls back to the snippet when rawContent is missing", () => {
-		const ev = tavilyResultToEvidence(raw({ rawContent: null }));
+		const ev = tavilyResultToEvidence(raw({ rawContent: undefined }));
 		expect(ev?.content).toBe("Short snippet from the search index.");
 	});
 
 	it("returns null when there is no usable text", () => {
 		expect(
-			tavilyResultToEvidence(raw({ rawContent: null, content: "   " })),
+			tavilyResultToEvidence(raw({ rawContent: undefined, content: "   " })),
 		).toBeNull();
 	});
 
@@ -59,7 +66,7 @@ describe("tavilyResultToEvidence", () => {
 
 	it("leaves publishedAt null when the date is absent or unparseable", () => {
 		expect(
-			tavilyResultToEvidence(raw({ publishedDate: undefined }))?.publishedAt,
+			tavilyResultToEvidence(raw({ publishedDate: "" }))?.publishedAt,
 		).toBeNull();
 		expect(
 			tavilyResultToEvidence(raw({ publishedDate: "not a date" }))?.publishedAt,
@@ -96,12 +103,11 @@ describe("searchEvidence", () => {
 		]);
 	});
 
-	it("skips malformed results but keeps the valid ones", async () => {
+	it("skips results the mapper rejects but keeps the valid ones", async () => {
 		const search = fakeSearch([
 			raw({ url: "https://example.com/good" }), // valid
 			raw({ url: "not-a-url" }), // bad URL → mapper rejects
-			raw({ rawContent: null, content: "  " }), // blank text → mapper rejects
-			{ title: "no score field", url: "https://example.com/x", content: "hi" }, // raw-schema reject
+			raw({ rawContent: undefined, content: "  " }), // blank text → mapper rejects
 		]);
 
 		const evidence = await searchEvidence("q", { search });
@@ -110,15 +116,8 @@ describe("searchEvidence", () => {
 		expect(evidence[0]!.url).toBe("https://example.com/good");
 	});
 
-	it("throws a [RAG] error when the response has no results array", async () => {
-		const search = async () => ({ notResults: [] });
-		await expect(searchEvidence("q", { search })).rejects.toThrow(
-			/\[RAG\].*results array/,
-		);
-	});
-
 	it("throws a [RAG] error when the search call rejects", async () => {
-		const search = async () => {
+		const search: TavilySearch = async () => {
 			throw new Error("network down");
 		};
 		await expect(searchEvidence("q", { search })).rejects.toThrow(

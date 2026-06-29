@@ -10,11 +10,13 @@
  *   • includeRawContent     — "markdown": we need the FULL article body to chunk, not a snippet.
  *   • maxResults 10, days 7 — enough independent documents to corroborate; recent by default.
  *
- * Conventions mirror packages/ingest/gamma.ts: validate every external row with Zod and SKIP
- * invalid ones (one bad result never sinks the batch); THROW with a `[RAG]` prefix on a hard
- * failure (the call rejecting, or no results array); never read process.env directly — pull the
- * key via `required(loadConfig()...)` only when the live client is built. The Tavily `search`
- * function is injectable so tests run fully offline.
+ * Trust boundary: we go through the typed @tavily/core SDK (not raw fetch), so we trust its
+ * response SHAPE and validate our OWN output — every row goes through EvidenceSchema, the
+ * boundary downstream chunking/citations actually depend on. The mapper still defends against
+ * the field-level realities the SDK type glosses over (publishedDate is typed required but is
+ * news-only; rawContent can be absent). Hard failures (the call rejecting) throw with a `[RAG]`
+ * prefix; the key is read via `required(loadConfig()...)` only when the live client is built;
+ * the Tavily `search` function is injectable so tests run fully offline.
  */
 import { createHash } from "node:crypto";
 import {
@@ -23,32 +25,23 @@ import {
 	loadConfig,
 	required,
 } from "@lykos/core";
-import { tavily } from "@tavily/core";
-import { z } from "zod";
+import { type TavilySearchResponse, tavily } from "@tavily/core";
 
 const DEFAULT_MAX_RESULTS = 10;
 const DEFAULT_RECENCY_DAYS = 7;
 const EVIDENCE_ID_LENGTH = 16;
 
-/** The raw shape we depend on from a Tavily search result (camelCase, per @tavily/core). */
-const TavilyResultSchema = z.object({
-	title: z.string(),
-	url: z.string(),
-	content: z.string().default(""),
-	rawContent: z.string().nullable().optional(),
-	score: z.number(),
-	publishedDate: z.string().optional(),
-});
-export type TavilyResult = z.infer<typeof TavilyResultSchema>;
-
-/** A Tavily response only needs to carry a `results` array for us; the rest is ignored. */
-const TavilyResponseSchema = z.object({ results: z.array(z.unknown()) });
+/**
+ * One result from a Tavily search: { title, url, content, rawContent?, score, publishedDate, … }.
+ * The SDK exports `TavilySearchResponse` but not its element type, so we derive it by indexing.
+ */
+export type TavilyResult = TavilySearchResponse["results"][number];
 
 /**
- * A search function: question in, raw Tavily response out. Injected in tests (return a
+ * A search function: question in, typed Tavily response out. Injected in tests (return a
  * fixture); defaults to a live Tavily client built from TAVILY_API_KEY.
  */
-export type TavilySearch = (query: string) => Promise<unknown>;
+export type TavilySearch = (query: string) => Promise<TavilySearchResponse>;
 
 export interface SearchEvidenceOptions {
 	/** Max results to request. Tavily caps this at 20. */
@@ -79,12 +72,12 @@ function getErrorMessage(error: unknown): string {
 }
 
 /**
- * Map one validated Tavily result into our domain Evidence (or null if it can't be
- * represented). Pure and deterministic. Prefers the full `rawContent` (markdown body) and
- * falls back to the short `content` snippet; skips a result with no usable text or a bad URL.
+ * Map one Tavily result into our domain Evidence (or null if it can't be represented).
+ * Pure and deterministic. Prefers the full `rawContent` (markdown body) and falls back to the
+ * short `content` snippet; skips a result with no usable text or a URL that fails EvidenceSchema.
  */
 export function tavilyResultToEvidence(raw: TavilyResult): Evidence | null {
-	const content = (raw.rawContent ?? raw.content ?? "").trim();
+	const content = (raw.rawContent ?? raw.content).trim();
 	if (content.length === 0) return null;
 
 	const candidate = {
@@ -116,8 +109,8 @@ function createLiveSearch(maxResults: number, days: number): TavilySearch {
 }
 
 /**
- * Search the web for Evidence relevant to a question. Returns validated Evidence, skipping
- * any malformed result; throws `[RAG] ...` if the search call fails or returns no results array.
+ * Search the web for Evidence relevant to a question. Returns validated Evidence, skipping any
+ * result that can't be mapped; throws `[RAG] ...` if the underlying search call fails.
  */
 export async function searchEvidence(
 	question: string,
@@ -127,23 +120,16 @@ export async function searchEvidence(
 	const days = options.days ?? DEFAULT_RECENCY_DAYS;
 	const search = options.search ?? createLiveSearch(maxResults, days);
 
-	let response: unknown;
+	let response: TavilySearchResponse;
 	try {
 		response = await search(question);
 	} catch (error: unknown) {
 		throw new Error(`[RAG] Tavily search failed: ${getErrorMessage(error)}`);
 	}
 
-	const parsed = TavilyResponseSchema.safeParse(response);
-	if (!parsed.success) {
-		throw new Error("[RAG] Tavily search returned no results array");
-	}
-
 	const evidence: Evidence[] = [];
-	for (const row of parsed.data.results) {
-		const rawResult = TavilyResultSchema.safeParse(row);
-		if (!rawResult.success) continue; // skip a malformed result, keep the batch
-		const mapped = tavilyResultToEvidence(rawResult.data);
+	for (const raw of response.results) {
+		const mapped = tavilyResultToEvidence(raw);
 		if (mapped) evidence.push(mapped);
 	}
 	return evidence;
