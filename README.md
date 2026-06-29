@@ -96,13 +96,11 @@ uncertainty lives in `confidence`, never double-counted inside `q`.
 
 ## Build roadmap
 
-1. ✅ Foundation: repo, workspace tooling, TS config, env scaffolding (you are here)
-2. ⬜ `core`: shared types + config — anchors the whole architecture
-3. ⬜ `ingest`: pull markets + evidence, cache locally
-4. ⬜ `rag`: the chunkers + embeddings + retrieval (the learning centerpiece)
-5. ⬜ `agent`: the forecast loop + policy gate + audit log
-6. ⬜ `evals`: golden set + Brier/calibration + faithfulness + CI gate
-7. ⬜ dashboard + writeup + (optional) MCP server
+Status, the deferred-work backlog (each item with a **trigger** and **where it plugs in**), and
+the design decisions live in **[docs/ROADMAP.md](docs/ROADMAP.md)** — the single source of truth,
+so this README doesn't drift.
+
+Phases: `core` ✅ → `sizing` ✅ → `ingest` ✅ → `eval` (LLM-judge) ✅ → `rag` → `agent` → deterministic evals → dashboard.
 
 ## Getting started (placeholder)
 

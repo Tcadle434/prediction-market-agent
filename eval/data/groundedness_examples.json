@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ex1-grounded-poll",
+    "question": "Will Candidate A win the 2026 mayoral election?",
+    "context": "A Marist poll released Oct 2 surveyed 800 likely voters and found Candidate A leading 52% to Candidate B's 45%, with a 3.5-point margin of error.",
+    "rationale": "The most recent Marist poll has Candidate A ahead 52-45 among likely voters, a lead just outside the margin of error. Absent other signals, I estimate roughly 0.6 probability of an A win.",
+    "grounded": true,
+    "note": "Numbers and source match the evidence; the estimate is a reasonable read of it."
+  },
+  {
+    "id": "ex2-hallucinated-stat",
+    "question": "Will Team X reach the World Cup final?",
+    "context": "Team X finished second in their qualifying group. Their star striker has been in good form this season.",
+    "rationale": "Team X is the betting favorite at most sportsbooks and has won 8 of their last 10 matches, so I estimate a 0.7 chance of reaching the final.",
+    "grounded": false,
+    "note": "The 'betting favorite' and '8 of last 10' claims appear nowhere in the evidence."
+  },
+  {
+    "id": "ex3-grounded-abstain",
+    "question": "Will the central bank cut rates in December?",
+    "context": "The provided news snippet only notes that inflation came in 'roughly in line with expectations' last month. No official guidance on December is included.",
+    "rationale": "The evidence is thin — only that inflation was in line with expectations, with no December guidance. I don't have enough grounded information to commit to a confident estimate.",
+    "grounded": true,
+    "note": "Correctly limits its claims to what the evidence supports, and abstains."
+  },
+  {
+    "id": "ex4-partial-mix",
+    "question": "Will Company Q beat earnings on Nov 1?",
+    "context": "Analysts polled by Reuters expect Q to report EPS of $1.20. Q has beaten consensus in each of the last two quarters.",
+    "rationale": "Consensus EPS is $1.20 and Q has beaten in the last two quarters. Management also raised full-year guidance last week, which further supports a beat, so I estimate 0.68.",
+    "grounded": false,
+    "note": "EPS and the two-quarter beat are grounded, but 'raised guidance last week' is not in the evidence."
+  },
+  {
+    "id": "ex5-grounded-restate",
+    "question": "Will it rain in Denver on the event date?",
+    "context": "The NWS forecast for that date lists a 20% chance of precipitation with mostly sunny skies.",
+    "rationale": "The NWS forecast gives a 20% precipitation chance with mostly sunny skies, so 'no rain' is favored; I estimate about 0.2 for rain.",
+    "grounded": true,
+    "note": "Directly grounded in the forecast figure."
+  },
+  {
+    "id": "ex6-wrong-entity",
+    "question": "Will Senator Y win re-election?",
+    "context": "A recent profile discusses Senator Y's fundraising, noting a $4M war chest as of Q3.",
+    "rationale": "Senator Y trails by 6 points in the latest internal polling and faces a strong challenger, so re-election looks uncertain; I estimate 0.45.",
+    "grounded": false,
+    "note": "Evidence is only about fundraising; the '6-point deficit' and 'strong challenger' are fabricated."
+  }
+]

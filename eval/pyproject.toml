@@ -1,0 +1,15 @@
+[project]
+name = "lykos-eval"
+version = "0.0.0"
+description = "LangSmith LLM-judge evaluations for Lykos (groundedness)."
+requires-python = ">=3.12"
+dependencies = [
+    "langsmith>=0.9",
+    "openevals>=0.1.0",
+    "langchain-anthropic>=0.3",
+    "python-dotenv>=1.0",
+]
+
+[tool.uv]
+# This is an application, not a library to build/publish — uv just manages its dependencies.
+package = false
