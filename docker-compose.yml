@@ -1,0 +1,33 @@
+# Local Postgres + pgvector for Lykos.
+# Host port 5433 (not 5432) so it coexists with other local Postgres containers.
+# Matches DATABASE_URL=postgresql://lykos:lykos@localhost:5433/lykos
+#
+#   docker compose up -d        # start
+#   docker compose down         # stop (keep data)
+#   docker compose down -v      # stop + wipe the volume (fresh DB)
+#
+# The `vector` extension is created by the Prisma migration (not here), so it lives
+# in tracked migration history and runs the same way in dev, CI, and prod.
+services:
+  db:
+    image: pgvector/pgvector:pg17 # pin 0.8.3-pg17 for byte-reproducible CI
+    container_name: lykos-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: lykos
+      POSTGRES_PASSWORD: lykos
+      POSTGRES_DB: lykos
+    ports:
+      - "5433:5432"
+    volumes:
+      - lykos-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U lykos -d lykos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  lykos-pgdata:
+    name: lykos-pgdata

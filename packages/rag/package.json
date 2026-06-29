@@ -14,15 +14,22 @@
 	"scripts": {
 		"build": "tsc",
 		"typecheck": "tsc --noEmit",
-		"test": "vitest run"
+		"test": "vitest run",
+		"db:generate": "prisma generate",
+		"db:migrate": "prisma migrate dev",
+		"db:deploy": "prisma migrate deploy"
 	},
 	"dependencies": {
 		"@langchain/core": "^1.2.1",
 		"@langchain/textsplitters": "^1.0.1",
 		"@lykos/core": "workspace:*",
+		"@prisma/client": "^6.19.3",
 		"@tavily/core": "^0.7.6",
 		"js-tiktoken": "^1.0.21",
 		"voyageai": "^0.4.0",
 		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"prisma": "^6.19.3"
 	}
 }

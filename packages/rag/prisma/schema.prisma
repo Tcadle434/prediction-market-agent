@@ -1,0 +1,34 @@
+// Prisma schema for the Lykos vector store (packages/rag).
+//
+// We use the stable `prisma-client-js` generator (client in node_modules, imported as
+// "@prisma/client") rather than the newer .ts-emitting generator — this package compiles
+// under strict verbatimModuleSyntax + noUncheckedIndexedAccess, and we never want generated
+// source inside our `src` include.
+//
+// Prisma has no native pgvector type, so `embedding` is Unsupported("vector(1024)") and is
+// read/written ONLY via $queryRaw/$executeRaw. The `vector` extension and the HNSW cosine
+// index are added by hand in the migration SQL (Prisma can't express either).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Chunk {
+  id          String  @id // = Chunk.id; upserts are idempotent on this PK
+  evidenceId  String
+  text        String
+  index       Int
+  tokenCount  Int
+  publishedAt String? // Chunk.publishedAt (string | null); text round-trips ISO exactly
+  marketId    String? // store-level tag (NOT part of the core Chunk); filter / cross-corpus
+
+  embedding Unsupported("vector(1024)")? // 1024-dim, L2-normalized; raw-SQL only
+
+  @@index([marketId])
+  @@map("chunks")
+}
