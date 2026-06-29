@@ -163,6 +163,18 @@ Each item lists **what**, **why deferred**, the **trigger** to do it, and **wher
 - **Where:** an ingest-side fetch + a tool; **feeds the sizing model** — thin liquidity should lower
   `confidence` and shrink the bet in `decideBet`.
 
+### D14 · Source content cleaning (boilerplate strip)
+- **What:** strip non-article chrome from Tavily `rawContent` before chunking — nav menus,
+  "About / Advertise / Login" link lists, footers, cookie banners. (Confirmed in a live smoke
+  test: the first chunk of a real news page was the site nav, not article text.)
+- **Why deferred:** the two-stage design is partly self-defending — a nav-menu chunk won't
+  match a question embedding, so it rarely surfaces in top-k. So it's a corpus-quality +
+  embedding-spend issue, not a correctness blocker.
+- **Trigger:** when we wire Evidence → chunks in the pipeline step.
+- **Where:** a light cleaning pass between `searchEvidence` (search.ts) and the chunkers —
+  drop markdown link-list / nav lines and very short lines; escalate to a readability/extract
+  pass only if eval recall demands it.
+
 ## Decisions (so we don't relitigate them)
 
 - **Model A sizing** — `q` is the honest mean; `confidence` only *shrinks* the bet (fractional Kelly); never overbet full Kelly. Units (1–5) come from edge-aware Kelly, **not** confidence alone.
