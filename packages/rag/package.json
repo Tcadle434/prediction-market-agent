@@ -20,6 +20,7 @@
 		"@langchain/core": "^1.2.1",
 		"@langchain/textsplitters": "^1.0.1",
 		"@lykos/core": "workspace:*",
+		"@tavily/core": "^0.7.6",
 		"js-tiktoken": "^1.0.21",
 		"zod": "^3.23.8"
 	}
