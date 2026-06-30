@@ -62,14 +62,9 @@ describe("createForecastNode", () => {
 			confidence: 0.5,
 			abstained: false,
 			rationale: "Grounded.",
-			citations: [
-				{
-					chunkId: "ev-1#0",
-					quote: "The Fed signaled it is in no hurry to cut.",
-				},
-			],
+			citedChunkIds: ["ev-1#0"],
 		});
-		const node = createForecastNode(model);
+		const node = createForecastNode({ model });
 
 		const update = await node(state(passages));
 
@@ -77,6 +72,9 @@ describe("createForecastNode", () => {
 		expect(update.forecast?.probabilityYes).toBe(0.65);
 		expect(update.forecast?.citations).toHaveLength(1);
 		expect(update.forecast?.citations[0]?.url).toBe("https://example.com/fed");
+		expect(update.forecast?.citations[0]?.quote).toBe(
+			"The Fed signaled it is in no hurry to cut.",
+		);
 	});
 
 	it("builds a prompt the model receives, with the system rules and the market question", async () => {
@@ -85,9 +83,9 @@ describe("createForecastNode", () => {
 			confidence: 0,
 			abstained: true,
 			rationale: "Too thin.",
-			citations: [],
+			citedChunkIds: [],
 		});
-		const node = createForecastNode(model);
+		const node = createForecastNode({ model });
 
 		await node(state([]));
 

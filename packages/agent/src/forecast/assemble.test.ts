@@ -43,17 +43,15 @@ function draft(overrides: Partial<ForecastDraft> = {}): ForecastDraft {
 		confidence: 0.6,
 		abstained: false,
 		rationale: "Grounded in the evidence.",
-		citations: [],
+		citedChunkIds: [],
 		...overrides,
 	};
 }
 
 describe("resolveCitations", () => {
-	it("keeps a matching citation and backfills evidenceId + url from the passage", () => {
+	it("builds a citation from a matching chunk id, using the verbatim passage text as the quote", () => {
 		const passages = [passage("ev-1#0", "ev-1")];
-		const cited = draft({
-			citations: [{ chunkId: "ev-1#0", quote: "some supporting text" }],
-		});
+		const cited = draft({ citedChunkIds: ["ev-1#0"] });
 
 		const citations = resolveCitations(cited, passages);
 
@@ -66,20 +64,25 @@ describe("resolveCitations", () => {
 		});
 	});
 
-	it("drops a citation whose chunkId was never retrieved (no fabricated sources)", () => {
+	it("drops a chunk id that was never retrieved (no fabricated sources)", () => {
 		const passages = [passage("ev-1#0")];
-		const cited = draft({ citations: [{ chunkId: "made-up#9", quote: "x" }] });
+		const cited = draft({ citedChunkIds: ["made-up#9"] });
 
 		expect(resolveCitations(cited, passages)).toHaveLength(0);
+	});
+
+	it("dedupes repeated chunk ids", () => {
+		const passages = [passage("ev-1#0")];
+		const cited = draft({ citedChunkIds: ["ev-1#0", "ev-1#0"] });
+
+		expect(resolveCitations(cited, passages)).toHaveLength(1);
 	});
 });
 
 describe("assembleForecast", () => {
 	it("assembles a schema-valid Forecast with marketId and resolved citations", () => {
 		const passages = [passage("ev-1#0")];
-		const cited = draft({
-			citations: [{ chunkId: "ev-1#0", quote: "some supporting text" }],
-		});
+		const cited = draft({ citedChunkIds: ["ev-1#0"] });
 
 		const forecast = assembleForecast(market(), passages, cited);
 

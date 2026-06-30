@@ -6,6 +6,11 @@ import {
 } from "../forecast/index.js";
 import type { AgentNode } from "../state.js";
 
+export interface ForecastDeps {
+	/** Override the forecast model — tests pass a fake; default is the live ChatAnthropic one. */
+	model?: ForecastModel;
+}
+
 /**
  * forecast node — produce a grounded Forecast for the market from the retrieved news.
  *
@@ -14,8 +19,8 @@ import type { AgentNode } from "../state.js";
  * ChatAnthropic-backed one by default; tests pass a fake. The live model is built lazily on first
  * run, so building the graph needs no API key — only running this node does.
  */
-export function createForecastNode(model?: ForecastModel): AgentNode {
-	let resolved = model;
+export function createForecastNode(deps: ForecastDeps = {}): AgentNode {
+	let resolved = deps.model;
 	return async (state) => {
 		resolved ??= liveForecastModel();
 		const prompt = buildForecastPrompt(state.market, state.news);

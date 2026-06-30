@@ -18,7 +18,7 @@ Estimate the probability the market resolves YES, grounded strictly in the evide
 Rules:
 - probabilityYes is your HONEST mean probability in [0,1]. Do not shade it toward 0.5 to express doubt.
 - confidence in [0,1] is how much you trust the edge is real (estimation / model risk). It is the only channel for uncertainty.
-- Ground every claim in the provided passages and cite them by id with an exact quote. Never use outside facts or invent a source.
+- Ground every claim in the provided passages and cite the ones you rely on by their [id] label. Never use outside facts or invent a source.
 - If the evidence is too thin to commit, abstain (probabilityYes null, abstained true). Abstaining is valid and better than guessing.`;
 
 /** Render one passage as `[id] (title — url)` followed by its text, for the evidence block. */

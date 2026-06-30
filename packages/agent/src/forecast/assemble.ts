@@ -8,25 +8,29 @@ import type { RetrievedPassage } from "../passage.js";
 import type { ForecastDraft } from "./draft.js";
 
 /**
- * Resolve the model's draft citations against the passages it was actually given. Keep only the
- * ones whose `chunkId` matches a retrieved passage, and backfill `evidenceId` + `url` from that
- * passage. Anything the model invented (a stale or made-up id) is dropped — the model never gets to
- * author ids or urls, so a citation can only point at real, retrieved evidence.
+ * Resolve the chunk ids the model cited against the passages it was actually given. Keep only ids
+ * that match a retrieved passage (dedup'd), and build each Citation entirely from that passage —
+ * evidenceId, url, and the verbatim chunk text as the quote. The model only ever names ids, so a
+ * citation can only point at real retrieved evidence, and the quote is guaranteed to be the actual
+ * passage text rather than a model transcription that might drift.
  */
 export function resolveCitations(
 	draft: ForecastDraft,
 	passages: RetrievedPassage[],
 ): Citation[] {
 	const byId = new Map(passages.map((passage) => [passage.id, passage]));
+	const seen = new Set<string>();
 	const citations: Citation[] = [];
-	for (const cited of draft.citations) {
-		const passage = byId.get(cited.chunkId);
+	for (const chunkId of draft.citedChunkIds) {
+		if (seen.has(chunkId)) continue;
+		const passage = byId.get(chunkId);
 		if (!passage) continue; // invented / stale id — drop it
+		seen.add(chunkId);
 		citations.push({
 			chunkId: passage.id,
 			evidenceId: passage.evidenceId,
 			url: passage.url,
-			quote: cited.quote,
+			quote: passage.text,
 		});
 	}
 	return citations;

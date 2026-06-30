@@ -19,8 +19,8 @@ import type { AgentDeps } from "./deps.js";
 import {
 	approvalGate,
 	createForecastNode,
+	createGatherNewsNode,
 	execute,
-	gatherNews,
 	log,
 	size,
 } from "./nodes/index.js";
@@ -29,8 +29,8 @@ import { AgentState } from "./state.js";
 /** Build and compile the forecast-loop graph. Pass `deps` to inject fakes (e.g. a test model). */
 export function buildForecastGraph(deps: AgentDeps = {}) {
 	return new StateGraph(AgentState)
-		.addNode("gatherNews", gatherNews)
-		.addNode("makeForecast", createForecastNode(deps.forecastModel))
+		.addNode("gatherNews", createGatherNewsNode(deps.gatherNews))
+		.addNode("makeForecast", createForecastNode(deps.forecast))
 		.addNode("size", size)
 		.addNode("approvalGate", approvalGate)
 		.addNode("execute", execute)
