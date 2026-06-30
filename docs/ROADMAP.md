@@ -209,18 +209,23 @@ Each item lists **what**, **why deferred**, the **trigger** to do it, and **wher
 - **Trigger:** before running the pipeline at volume, or if `429`s recur on a paid tier.
 - **Where:** `packages/rag/src/embed.ts` (the batching loop in `embedTexts` + the live `createLiveEmbed`).
 
-### D16 · Source-quality filtering (drop junk / parked-domain results)
-- **What:** reject low-quality Evidence *before* indexing — parked "domain for sale" pages, link
-  farms, and other non-article junk Tavily can return. (Live demo: a parked-domain page
-  "predict.info — Premium Domain For Sale, USD 200,000" ranked #1 for a Fed-rates query — keyword-
-  adjacent junk that boilerplate cleaning can't fix.)
-- **Why deferred / distinct from D14:** D14 strips chrome *within* real articles; this is rejecting
-  whole junk *sources*. The core retrieval works on real sources, so one junk doc is a quality
-  issue, not a correctness blocker.
-- **Trigger:** before relying on retrieval quality for live forecasts, or when junk sources recur.
-- **Where:** a filter in/after `searchEvidence` — content-signal heuristics (domain-sale phrases, a
-  too-short cleaned body) and/or Tavily `excludeDomains` + a small blocklist; source-authority
-  scoring later.
+### D16 · Page-header / banner stripping (readability extraction)
+- **What:** strip *prose-like* page chrome that line heuristics miss — "domain for sale" banners,
+  cookie notices, "Login / Join" headers — sitting atop otherwise-excellent article chunks.
+- **CORRECTION from the live demo (important):** the predict.info chunk that ranked #1 *looked*
+  like junk from its 220-char preview, but its full text is a genuinely top-relevant article
+  ("Fed Rate Cuts 2026: Polymarket '0 Cuts' Odds Slip to 79.5%…") with only a for-sale **header
+  banner** on top. **The reranker was correct** — it's the best evidence for the query. So this is
+  NOT a junk source to drop (doing so would discard the best chunk); it's a cosmetic header on a
+  good chunk. The earlier "filter junk sources" framing was a misdiagnosis.
+- **The real fix:** a readability / article-extraction pass (e.g. Mozilla Readability, or Tavily's
+  own article extraction) that keeps just the article body — the escalation D14 already flagged.
+  Heuristic banner-phrase stripping is whack-a-mole; extraction is the durable answer.
+- **Trigger:** when header chrome measurably pollutes citations (it's cosmetic, not a correctness
+  blocker — the relevant body still drives the score).
+- **Where:** between `searchEvidence` and chunking — grow `clean.ts` toward readability, or swap in
+  an extractor. (True parked-domain junk with NO real body is rarer than this looked; a small
+  `excludeDomains`/blocklist covers it if it recurs.)
 
 ## Decisions (so we don't relitigate them)
 
