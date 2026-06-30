@@ -19,13 +19,8 @@
  * boundaries — so state merely carries them; it never redefines a shape.
  */
 import { Annotation } from "@langchain/langgraph";
-import type {
-	Decision,
-	Forecast,
-	Market,
-	Position,
-	RetrievedChunk,
-} from "@lykos/core";
+import type { Decision, Forecast, Market, Position } from "@lykos/core";
+import type { RetrievedPassage } from "./passage.js";
 
 /** Last-write-wins reducer: a node's value replaces the previous one. */
 const lastValue = <T>(_current: T, next: T): T => next;
@@ -34,8 +29,8 @@ export const AgentState = Annotation.Root({
 	/** The market under analysis. Provided as input; the loop reads it but never rewrites it. */
 	market: Annotation<Market>,
 
-	/** Retrieved news passages (each carries its citation fields). Accumulates across gather steps. */
-	news: Annotation<RetrievedChunk[]>({
+	/** Retrieved news passages (each carries its source url for citations). Accumulates across gather steps. */
+	news: Annotation<RetrievedPassage[]>({
 		reducer: (current, next) => current.concat(next),
 		default: () => [],
 	}),
@@ -67,7 +62,10 @@ export type AgentStateUpdate = typeof AgentState.Update;
 
 /**
  * The contract every graph node satisfies: take the current state, return the partial update to
- * merge in. Async because most nodes await I/O (search, the LLM, the store). Returning `{}` writes
- * nothing — valid for a stub or a node that has no contribution this run.
+ * merge in (a plain `Partial` of the state — clean to read back, vs the `.Update` type which wraps
+ * each channel in LangGraph's overwrite union). Async because most nodes await I/O (search, the
+ * LLM, the store). Returning `{}` writes nothing — valid for a stub or a no-contribution run.
  */
-export type AgentNode = (state: AgentStateType) => Promise<AgentStateUpdate>;
+export type AgentNode = (
+	state: AgentStateType,
+) => Promise<Partial<AgentStateType>>;

@@ -15,21 +15,22 @@
  * (`state.forecast`), so the forecast node is registered under the id `makeForecast`.
  */
 import { END, START, StateGraph } from "@langchain/langgraph";
+import type { AgentDeps } from "./deps.js";
 import {
 	approvalGate,
+	createForecastNode,
 	execute,
-	forecast,
 	gatherNews,
 	log,
 	size,
 } from "./nodes/index.js";
 import { AgentState } from "./state.js";
 
-/** Build and compile the forecast-loop graph. */
-export function buildForecastGraph() {
+/** Build and compile the forecast-loop graph. Pass `deps` to inject fakes (e.g. a test model). */
+export function buildForecastGraph(deps: AgentDeps = {}) {
 	return new StateGraph(AgentState)
 		.addNode("gatherNews", gatherNews)
-		.addNode("makeForecast", forecast)
+		.addNode("makeForecast", createForecastNode(deps.forecastModel))
 		.addNode("size", size)
 		.addNode("approvalGate", approvalGate)
 		.addNode("execute", execute)
