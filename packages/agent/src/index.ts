@@ -6,6 +6,7 @@
 export * from "./audit/index.js";
 export * from "./deps.js";
 export * from "./forecast/index.js";
+export * from "./forecast-market.js";
 export * from "./graph.js";
 export * from "./nodes/index.js";
 export * from "./passage.js";

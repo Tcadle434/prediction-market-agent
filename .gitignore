@@ -32,3 +32,6 @@ data/cache/
 
 # os
 .DS_Store
+
+# Generated real-market snapshot for the live-agent eval (regenerate with fetch-markets.mjs)
+eval/data/live_markets.json

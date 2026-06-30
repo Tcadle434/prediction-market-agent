@@ -13,7 +13,7 @@ behind the design.
 | `packages/ingest` | Polymarket fetch → `Market` + JSON cache + tests | ✅ done |
 | `packages/rag` | two-stage retrieval: search → chunk → embed → pgvector → retrieve + rerank | ✅ **built** (P1 — see Current state) |
 | tooling | Biome (tabs/format/lint/import-sort) · Docker pgvector · Prisma 7 | ✅ done |
-| `eval/` (Python) | LangSmith LLM-judges: **groundedness** + **retrieval relevance** | ✅ scaffolded — needs API keys to run live |
+| `eval/` (Python) | LangSmith LLM-judges (**groundedness** + **retrieval relevance**); golden-set + **live-agent** (D6) | ✅ scaffolded — needs API keys to run live |
 | `packages/agent` | LangGraph.js loop: multi-modal (news + order flow) → forecast → `decideBet` → position | 🔨 **in progress** (P2 — steps 1–7 of 8 done; **core loop complete**, only order flow left) |
 | on-chain order flow | Polymarket trade data + `getOrderFlow` tool | ⬜ todo |
 | deterministic evals | Brier / calibration / PnL scorecards | ⬜ todo |
@@ -153,9 +153,10 @@ Each item lists **what**, **why deferred**, the **trigger** to do it, and **wher
 - **Trigger:** the cache "grows out of control" — many snapshots, a need to query/dedupe the golden set, or concurrent writes.
 - **Where:** `packages/ingest/src/cache.ts` — the read/write interface stays; only the backend changes.
 
-### D6 · Real eval target (swap the echo)
-- **What:** replace `echo_target` in `eval/lykos_eval/run_eval.py` with a call into the forecasting agent, so the harness scores the real agent.
-- **Trigger:** when `agent` exists.
+### D6 · Real eval target (swap the echo) — ✅ DONE
+- **What:** score the *real* agent over real markets, not a stored echo.
+- **Done:** the eval (Python) bridges to the agent (TS) by shelling out to `scratchpad/forecast-bridge.mjs` (question → `{rationale, context}` JSON via `forecastMarket`). `agent_target.py` calls it; `run_agent_eval.py` seeds a dataset from real Polymarket questions (`scratchpad/fetch-markets.mjs` → `eval/data/live_markets.json`) and runs both judges. Evaluators now read `context` from the target output when present (live agent), falling back to `inputs.context` (golden set). The old `echo_target` / `run_eval.py` golden-set harness stays as a judge regression set.
+- **Verified:** bridge produced a calibrated grounded forecast on a live market (USA to win 2026 WC → 0.038, vs 25-1 odds). Full live experiment not run here (per-market API cost); run instructions in README.
 
 ### D7 · Positions/decisions ledger storage
 - **What:** decide where `Decision` + `Position` records live — they mutate on settlement and get queried for the PnL scorecard. Likely Postgres, not JSON.

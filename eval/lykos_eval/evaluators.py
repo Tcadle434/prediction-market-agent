@@ -57,13 +57,19 @@ def groundedness_evaluator(inputs: dict, outputs: dict, reference_outputs: dict 
     LangSmith calls this with the example ``inputs``, the target's ``outputs``, and the example's
     ``reference_outputs``. Returns the openevals feedback dict ({"key", "score", "comment"}).
     """
-    return make_groundedness_judge()(outputs=outputs["rationale"], context=inputs["context"])
+    return make_groundedness_judge()(outputs=outputs["rationale"], context=_context(inputs, outputs))
 
 
 def retrieval_relevance_evaluator(inputs: dict, outputs: dict, reference_outputs: dict | None = None):
     """LangSmith-compatible evaluator: is the retrieved evidence relevant to the question?
 
-    Scores ``inputs["context"]`` against ``inputs["question"]`` only — the target's ``outputs`` are
-    not used, so this judges the *retriever*, independently of what the forecaster did with it.
+    Scores the context against the question — judging the *retriever* independently of what the
+    forecaster did with it.
     """
-    return make_relevance_judge()(inputs=inputs["question"], context=inputs["context"])
+    return make_relevance_judge()(inputs=inputs["question"], context=_context(inputs, outputs))
+
+
+def _context(inputs: dict, outputs: dict | None) -> str:
+    """The context to judge against: the agent's retrieved context when the target produced it
+    (live-agent runs, D6), otherwise the example's hand-authored context (the golden set)."""
+    return (outputs or {}).get("context") or inputs.get("context", "")
