@@ -209,6 +209,19 @@ Each item lists **what**, **why deferred**, the **trigger** to do it, and **wher
 - **Trigger:** before running the pipeline at volume, or if `429`s recur on a paid tier.
 - **Where:** `packages/rag/src/embed.ts` (the batching loop in `embedTexts` + the live `createLiveEmbed`).
 
+### D16 · Source-quality filtering (drop junk / parked-domain results)
+- **What:** reject low-quality Evidence *before* indexing — parked "domain for sale" pages, link
+  farms, and other non-article junk Tavily can return. (Live demo: a parked-domain page
+  "predict.info — Premium Domain For Sale, USD 200,000" ranked #1 for a Fed-rates query — keyword-
+  adjacent junk that boilerplate cleaning can't fix.)
+- **Why deferred / distinct from D14:** D14 strips chrome *within* real articles; this is rejecting
+  whole junk *sources*. The core retrieval works on real sources, so one junk doc is a quality
+  issue, not a correctness blocker.
+- **Trigger:** before relying on retrieval quality for live forecasts, or when junk sources recur.
+- **Where:** a filter in/after `searchEvidence` — content-signal heuristics (domain-sale phrases, a
+  too-short cleaned body) and/or Tavily `excludeDomains` + a small blocklist; source-authority
+  scoring later.
+
 ## Decisions (so we don't relitigate them)
 
 - **Model A sizing** — `q` is the honest mean; `confidence` only *shrinks* the bet (fractional Kelly); never overbet full Kelly. Units (1–5) come from edge-aware Kelly, **not** confidence alone.

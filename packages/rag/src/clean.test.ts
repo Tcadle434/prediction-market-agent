@@ -40,4 +40,10 @@ describe("cleanMarkdown", () => {
 		expect(cleanMarkdown("   ")).toBe("");
 		expect(cleanMarkdown("* [A](/a) * [B](/b)\n* [C](/c) * [D](/d)")).toBe("");
 	});
+
+	it("strips a leading nav-link run sharing a line with prose", () => {
+		const input =
+			"* [Login](/login) * [Ads](/ads) The Fed kept rates steady on Tuesday.";
+		expect(cleanMarkdown(input)).toBe("The Fed kept rates steady on Tuesday.");
+	});
 });

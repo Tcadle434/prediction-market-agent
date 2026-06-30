@@ -35,11 +35,19 @@ function isContentLine(line: string): boolean {
 	return true;
 }
 
-/** Strip page boilerplate (nav/link lists, short labels) from markdown; keep prose + headings. */
+/** Strip a leading run of ≥2 markdown nav links from a line (a nav prefix sharing a content line). */
+function stripLeadingNav(line: string): string {
+	return line
+		.replace(/^(\s*[*\-•]?\s*\[[^\]]*\]\([^)]*\)\s*){2,}/, "")
+		.trimStart();
+}
+
+/** Strip page boilerplate (nav/link lists, leading nav prefixes, short labels); keep prose + headings. */
 export function cleanMarkdown(content: string): string {
 	return content
 		.split("\n")
 		.filter(isContentLine)
+		.map(stripLeadingNav)
 		.join("\n")
 		.replace(/\n{3,}/g, "\n\n")
 		.trim();
