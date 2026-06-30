@@ -13,7 +13,7 @@ behind the design.
 | `packages/ingest` | Polymarket fetch → `Market` + JSON cache + tests | ✅ done |
 | `packages/rag` | two-stage retrieval: search → chunk → embed → pgvector → retrieve + rerank | ✅ **built** (P1 — see Current state) |
 | tooling | Biome (tabs/format/lint/import-sort) · Docker pgvector · Prisma 7 | ✅ done |
-| `eval/` (Python) | LangSmith **groundedness** LLM-judge | ✅ scaffolded — needs API keys to run live |
+| `eval/` (Python) | LangSmith LLM-judges: **groundedness** + **retrieval relevance** | ✅ scaffolded — needs API keys to run live |
 | `packages/agent` | LangGraph.js loop: multi-modal (news + order flow) → forecast → `decideBet` → position | ⬜ todo (P2 — next major step) |
 | on-chain order flow | Polymarket trade data + `getOrderFlow` tool | ⬜ todo |
 | deterministic evals | Brier / calibration / PnL scorecards | ⬜ todo |
@@ -32,10 +32,12 @@ DB/API tests gated on a reachable Postgres / real API keys). Build order, all co
 6. **Retrieval** — `recency.ts` (exponential time-decay) + `retrieve(question, { store, … })` (embed query → over-fetch candidateK → rerank → recency-reorder → topK).
 7. **Pipeline** — `indexEvidence(evidence, { store, chunker, … })` (chunk → embed → upsert) completes `searchEvidence → indexEvidence → retrieve`.
 
-**Pending in P1:**
-- ⏳ **Live end-to-end demo** — `scratchpad/demo.mjs` runs the whole pipeline on a real market question (Tavily → chunk → Voyage → pgvector → retrieve). Verified through search+chunk live; **blocked on Voyage rate-limit propagation** (free tier 3 RPM / 10K TPM → standard, takes minutes after adding a payment method). **Re-run when the limits lift.**
-- ⬜ **D1 retrieval-relevance eval** — wire the openevals retrieval-relevance judge into `eval/` now that `rag` produces real retrieved contexts (see D1). This is the last P1 item.
-- ⬜ **D14 boilerplate strip** + **D15 embed hardening** — quality/robustness items surfaced this build (see deferred).
+**P1 complete:**
+- ✅ **Live end-to-end demo** — `scratchpad/demo.mjs` ran the whole pipeline on a real market question (Tavily → 5 docs → 54 chunks in pgvector → retrieve → 5 grounded passages). Top-ranked passage was a genuinely on-topic Fed/Polymarket article, confirming the reranker. (The one cosmetic wart — a "Premium Domain For Sale" header banner riding into the chunk text — is tracked as **D16** readability extraction, not a retrieval bug.)
+- ✅ **D14 boilerplate strip** — `clean.ts` (`cleanMarkdown`) drops nav/link-list lines + leading nav prefixes before chunking; wired into `indexEvidence`. Light pass, not full readability (that's D16).
+- ✅ **D1 retrieval-relevance eval** — second openevals judge (`RAG_RETRIEVAL_RELEVANCE_PROMPT`) added in `eval/lykos_eval/evaluators.py` and wired into `run_eval.py`; scores evidence ↔ question alongside groundedness on the same experiment run. Smoke-tested offline; live run needs LangSmith + Anthropic keys.
+
+**Still deferred (tracked, not blocking P1):** D15 (embed token-aware batching + 429 backoff) · D16 (header-banner readability extraction).
 
 **Next major step → P2 `packages/agent`** — the LangGraph.js forecast loop that consumes `retrieve()` (news) + a new `getOrderFlow` tool (on-chain order flow), produces a structured `Forecast`, sizes it with the already-built `decideBet`, and gates on human approval. Detail in P2 below.
 
@@ -104,11 +106,10 @@ calls), `langsmith`.
 
 Each item lists **what**, **why deferred**, the **trigger** to do it, and **where** it plugs in.
 
-### D1 · Retrieval-relevance evaluator (openevals)
+### D1 · Retrieval-relevance evaluator (openevals) — ✅ DONE
 - **What:** a second openevals LLM-judge — are retrieved evidence chunks actually relevant to the market question? (`RAG_RETRIEVAL_RELEVANCE_PROMPT`; compares context ↔ question).
-- **Why deferred:** there's no retriever yet — current eval examples hand us the context, so there's nothing *retrieved* to score.
-- **Trigger:** when `rag` produces real retrieved contexts.
-- **Where:** `eval/lykos_eval/evaluators.py` (add `retrieval_relevance_evaluator` next to groundedness) → wire into `run_eval.py`.
+- **Done:** `retrieval_relevance_evaluator` added in `eval/lykos_eval/evaluators.py` (alongside groundedness; both judges now `lru_cache`'d factories) and added to the `evaluators=[…]` list in `run_eval.py`; the local summary prints both scores. Experiment prefix renamed `lykos-groundedness` → `lykos-llm-judge` since it's no longer groundedness-only.
+- **Follow-on (D6):** today it scores the hand-authored `context` field; when `echo_target` is swapped for the real agent, the same judge scores `rag`'s actual retrieved contexts with no change here.
 
 ### D2 · Deterministic correctness scorecard (Brier / calibration) — NOT an LLM judge
 - **What:** forecast-quality metrics — Brier score, calibration curve / reliability diagram, and Brier-vs-market baseline, using resolved outcomes as ground truth.

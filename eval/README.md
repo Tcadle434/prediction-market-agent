@@ -2,8 +2,12 @@
 
 The **LLM-judged half** of Lykos's evaluation. Deterministic metrics (Brier, calibration, PnL in
 units) are plain math and live with the TS packages; this Python project handles what genuinely
-needs a model to judge — starting with **groundedness**: is a forecast's *rationale* actually
-grounded in the *evidence* it was given, or did it hallucinate?
+needs a model to judge. Two judges run today:
+
+- **groundedness** — is a forecast's *rationale* actually grounded in the *evidence* it was given,
+  or did it hallucinate?
+- **retrieval relevance** — is the retrieved *evidence* actually relevant to the market *question*?
+  This scores the retriever itself, independently of the rationale.
 
 Built on **LangSmith** (datasets + experiments + tracing) and **openevals** (prebuilt
 LLM-as-judge evaluators). Judge defaults to Claude (Anthropic).
@@ -11,7 +15,8 @@ LLM-as-judge evaluators). Judge defaults to Claude (Anthropic).
 ## What this demonstrates (the LangChain eval surface)
 
 - A versioned **LangSmith dataset** of labeled examples (`seed_dataset.py`)
-- An **LLM-as-judge evaluator** via `openevals` `RAG_GROUNDEDNESS_PROMPT` (`evaluators.py`)
+- Two **LLM-as-judge evaluators** via `openevals` `RAG_GROUNDEDNESS_PROMPT` and
+  `RAG_RETRIEVAL_RELEVANCE_PROMPT` (`evaluators.py`)
 - A tracked **experiment** through `langsmith.evaluate(target, data, evaluators)` (`run_eval.py`)
 - A **target** abstraction — today a placeholder; the real forecasting agent plugs in unchanged
 
@@ -29,12 +34,12 @@ Python 3.12 (managed by uv) + two keys.
 ```bash
 cd eval
 uv run python -m lykos_eval.seed_dataset   # push/update the dataset in LangSmith
-uv run python -m lykos_eval.run_eval       # run the groundedness experiment (auto-seeds first)
+uv run python -m lykos_eval.run_eval       # run the LLM-judge experiment (auto-seeds first)
 ```
 
-Open the experiment link printed by LangSmith to see each rationale's groundedness score and the
-judge's reasoning, side by side with our human `grounded` label (six examples — three grounded,
-three with planted hallucinations).
+Open the experiment link printed by LangSmith to see each example's **groundedness** and
+**retrieval_relevance** scores with the judge's reasoning, side by side with our human `grounded`
+label (six examples — three grounded, three with planted hallucinations).
 
 ## How it connects to the rest of Lykos
 

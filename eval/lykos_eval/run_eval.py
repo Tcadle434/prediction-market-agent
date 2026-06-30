@@ -1,4 +1,8 @@
-"""Run the groundedness evaluation as a LangSmith experiment.
+"""Run the LLM-judge evaluation as a LangSmith experiment.
+
+Two judges run over each example: **groundedness** (is the rationale supported by the evidence?)
+and **retrieval relevance** (is the evidence relevant to the question?). Both attach feedback to
+the same experiment run.
 
 The *target* is the thing being evaluated. Today it's a placeholder that echoes the candidate
 rationale stored on each example; when the forecasting `agent` package lands, swap `echo_target`
@@ -11,7 +15,7 @@ from __future__ import annotations
 from dotenv import load_dotenv
 from langsmith import evaluate
 
-from .evaluators import groundedness_evaluator
+from .evaluators import groundedness_evaluator, retrieval_relevance_evaluator
 from .seed_dataset import seed
 
 
@@ -27,17 +31,19 @@ def main() -> None:
     results = evaluate(
         echo_target,
         data=dataset,
-        evaluators=[groundedness_evaluator],
-        experiment_prefix="lykos-groundedness",
+        evaluators=[groundedness_evaluator, retrieval_relevance_evaluator],
+        experiment_prefix="lykos-llm-judge",
         max_concurrency=4,
     )
 
     print("\nExperiment created — open it in LangSmith to inspect per-example scores + reasoning.")
     try:
         for row in results:
-            q = row["example"].inputs.get("question", "")[:48]
-            fb = row["evaluation_results"]["results"][0]
-            print(f"  {q:48}  groundedness={fb.score}")
+            q = row["example"].inputs.get("question", "")[:40]
+            scores = {fb.key: fb.score for fb in row["evaluation_results"]["results"]}
+            grounded = scores.get("groundedness")
+            relevance = scores.get("retrieval_relevance")
+            print(f"  {q:40}  groundedness={grounded}  retrieval_relevance={relevance}")
     except Exception:
         pass  # local summary is best-effort; the experiment in LangSmith is the source of truth
 
