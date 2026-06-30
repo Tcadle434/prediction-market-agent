@@ -14,7 +14,7 @@ behind the design.
 | `packages/rag` | two-stage retrieval: search → chunk → embed → pgvector → retrieve + rerank | ✅ **built** (P1 — see Current state) |
 | tooling | Biome (tabs/format/lint/import-sort) · Docker pgvector · Prisma 7 | ✅ done |
 | `eval/` (Python) | LangSmith LLM-judges: **groundedness** + **retrieval relevance** | ✅ scaffolded — needs API keys to run live |
-| `packages/agent` | LangGraph.js loop: multi-modal (news + order flow) → forecast → `decideBet` → position | 🔨 **in progress** (P2 — steps 1–5 of 8 done; see Current state) |
+| `packages/agent` | LangGraph.js loop: multi-modal (news + order flow) → forecast → `decideBet` → position | 🔨 **in progress** (P2 — steps 1–6 of 8 done; see Current state) |
 | on-chain order flow | Polymarket trade data + `getOrderFlow` tool | ⬜ todo |
 | deterministic evals | Brier / calibration / PnL scorecards | ⬜ todo |
 | dashboard / mcp | optional surfaces | ⬜ todo |
@@ -44,7 +44,7 @@ DB/API tests gated on a reachable Postgres / real API keys). Build order, all co
 The LangGraph.js forecast loop. Built **incrementally, a checkpoint commit per step**; each real node
 keeps an **injectable seam** so it tests offline and runs live by default. Stack: `@langchain/langgraph`
 **1.4.7**, `@langchain/anthropic` **1.5.1** (forecast model `claude-sonnet-4-6`), `langsmith` (auto-trace).
-**18 offline tests** green; `gatherNews → forecast → size` verified live end to end.
+**23 offline tests** green; `gatherNews → forecast → size` verified live end to end, and the HITL pause→resume verified with no keys.
 
 Graph wiring (compiled): `START → gatherNews → makeForecast → size → approvalGate → execute → log → END`.
 (The forecast node is registered as `makeForecast` because a node id may not equal a state channel name,
@@ -56,8 +56,8 @@ Build order — **8 steps, 1–5 done:**
 3. ✅ **`forecast` node** — `ChatAnthropic` + `withStructuredOutput` → a `ForecastDraft` → `assembleForecast` (resolves citations against the real passages, validates `ForecastSchema`). Model A rules in the system prompt; uncertainty only in `confidence`. Injectable model seam (built lazily — no key to compile the graph).
 4. ✅ **`gatherNews` node** — runs P1 (`searchEvidence → indexEvidence → retrieve`), then `toPassages` joins chunks back to their `Evidence` for the source url/title (`RetrievedPassage`, the `news` channel element). Live defaults: Tavily + Voyage + a fresh in-memory store per run.
 5. ✅ **`size` node** — wraps `decideBet(forecast, market, policy, now)` → `Decision`. Policy + clock injectable.
-6. ⬜ **`approvalGate` + checkpointer** — `interrupt()` when `decision.requiresApproval`; pause, surface the decision, resume via `Command` on a `thread_id`. **← next.**
-7. ⬜ **`execute` + `log`** — paper-trade fill at best ask → `Position`; hash-chained audit record.
+6. ✅ **`approvalGate` + checkpointer** — graph compiles with a `MemorySaver` (every run needs a `thread_id`); `interrupt()` pauses when `decision.requiresApproval`, surfacing an `ApprovalRequest`; resume via `approvalCommand(approved)` → folded into `decision.approved`. Keyless `agent-approval.mjs` demos pause→resume.
+7. ⬜ **`execute` + `log`** — paper-trade fill at best ask → `Position`; hash-chained audit record. **← next.**
 8. ⬜ **`gatherOrderFlow` + `getOrderFlow` tool** — on-chain Polymarket trade modality as a 2nd evidence channel.
 
 **Decisions locked this phase:** deps **grouped by node** (`AgentDeps { gatherNews?, forecast?, size? }`); the model returns **only `citedChunkIds`** (plain strings) and we attach the **verbatim chunk text** as the citation quote — Anthropic tool-use stringifies/breaks nested free-text arrays, and verbatim text is more trustworthy grounding anyway.
