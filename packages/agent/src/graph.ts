@@ -14,7 +14,7 @@
  * LangGraph gotcha: a node id may not collide with a state channel name. `forecast` is a channel
  * (`state.forecast`), so the forecast node is registered under the id `makeForecast`.
  */
-import { END, START, StateGraph } from "@langchain/langgraph";
+import { END, MemorySaver, START, StateGraph } from "@langchain/langgraph";
 import type { AgentDeps } from "./deps.js";
 import {
 	approvalGate,
@@ -26,7 +26,13 @@ import {
 } from "./nodes/index.js";
 import { AgentState } from "./state.js";
 
-/** Build and compile the forecast-loop graph. Pass `deps` to inject fakes (e.g. a test model). */
+/**
+ * Build and compile the forecast-loop graph. Pass `deps` to inject fakes (e.g. a test model).
+ *
+ * Compiled with a `MemorySaver` checkpointer — required for the approvalGate's interrupt/resume, and
+ * the reason every run needs a `thread_id` in its config (`{ configurable: { thread_id } }`). The
+ * checkpointer is in-memory for v1; a durable (Postgres) one can swap in later without touching nodes.
+ */
 export function buildForecastGraph(deps: AgentDeps = {}) {
 	return new StateGraph(AgentState)
 		.addNode("gatherNews", createGatherNewsNode(deps.gatherNews))
@@ -42,5 +48,5 @@ export function buildForecastGraph(deps: AgentDeps = {}) {
 		.addEdge("approvalGate", "execute")
 		.addEdge("execute", "log")
 		.addEdge("log", END)
-		.compile();
+		.compile({ checkpointer: new MemorySaver() });
 }

@@ -28,16 +28,20 @@ const market = {
 
 const graph = buildForecastGraph();
 
+// The graph is compiled with a checkpointer, so every run needs a thread_id.
 console.log("running the skeleton graph on a fake market…\n");
 for await (const step of await graph.stream(
 	{ market },
-	{ streamMode: "updates" },
+	{ streamMode: "updates", configurable: { thread_id: "skeleton-stream" } },
 )) {
 	const [node, update] = Object.entries(step)[0];
 	console.log(`▶ ${node.padEnd(13)} → ${JSON.stringify(update)}`);
 }
 
-const finalState = await graph.invoke({ market });
+const finalState = await graph.invoke(
+	{ market },
+	{ configurable: { thread_id: "skeleton-invoke" } },
+);
 console.log("\nfinal state:");
 console.log("  market  :", finalState.market.id);
 console.log("  news    :", finalState.news.length, "passages");

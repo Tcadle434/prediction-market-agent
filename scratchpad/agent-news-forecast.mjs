@@ -6,7 +6,10 @@
  *   pnpm --filter @lykos/agent build
  *   node --env-file=.env scratchpad/agent-news-forecast.mjs   # needs TAVILY + VOYAGE + ANTHROPIC keys
  */
-import { buildForecastGraph } from "../packages/agent/dist/index.js";
+import {
+	approvalCommand,
+	buildForecastGraph,
+} from "../packages/agent/dist/index.js";
 
 const market = {
 	id: "fed-dec-2026",
@@ -27,9 +30,10 @@ const market = {
 };
 
 const graph = buildForecastGraph(); // all-live defaults
+const config = { configurable: { thread_id: "fed-dec-2026" } };
 
 console.log("running gatherNews → forecast on a real market…\n");
-const result = await graph.invoke({ market });
+let result = await graph.invoke({ market }, config);
 
 console.log(`news: ${result.news.length} passages retrieved`);
 for (const passage of result.news) {
@@ -37,3 +41,12 @@ for (const passage of result.news) {
 }
 console.log("\nforecast:");
 console.log(JSON.stringify(result.forecast, null, 2));
+
+// A real bet trips the approval gate; auto-approve here to run to completion.
+if (result.__interrupt__?.length) {
+	console.log(
+		"\n⏸  approval gate paused the run; auto-approving for the demo…",
+	);
+	result = await graph.invoke(approvalCommand(true), config);
+}
+console.log("\ndecision:", JSON.stringify(result.decision, null, 2));
