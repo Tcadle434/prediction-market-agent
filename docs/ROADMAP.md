@@ -11,19 +11,42 @@ behind the design.
 | `packages/core` | domain types + config + sizing policy | ✅ done |
 | `packages/sizing` | model-A bet sizing (`decideBet`) + tests | ✅ done |
 | `packages/ingest` | Polymarket fetch → `Market` + JSON cache + tests | ✅ done |
+| `packages/rag` | two-stage retrieval: search → chunk → embed → pgvector → retrieve + rerank | ✅ **built** (P1 — see Current state) |
+| tooling | Biome (tabs/format/lint/import-sort) · Docker pgvector · Prisma 7 | ✅ done |
 | `eval/` (Python) | LangSmith **groundedness** LLM-judge | ✅ scaffolded — needs API keys to run live |
-| `packages/rag` | chunk → embed → pgvector → retrieve + rerank | ⬜ todo |
-| `packages/agent` | LangGraph.js loop: multi-modal (news + order flow) → forecast → `decideBet` → position | ⬜ todo |
+| `packages/agent` | LangGraph.js loop: multi-modal (news + order flow) → forecast → `decideBet` → position | ⬜ todo (P2 — next major step) |
 | on-chain order flow | Polymarket trade data + `getOrderFlow` tool | ⬜ todo |
 | deterministic evals | Brier / calibration / PnL scorecards | ⬜ todo |
 | dashboard / mcp | optional surfaces | ⬜ todo |
+
+## Current state — P1 `packages/rag` is built ✅
+
+The full two-stage retrieval loop is implemented and tested (**93 tests**; offline suite green, the
+DB/API tests gated on a reachable Postgres / real API keys). Build order, all committed:
+
+1. **`VectorStore` seam + `InMemoryVectorStore`** — swappable storage interface (`upsert`/`query`/`clear`/`count`) + cosine-KNN reference impl that the pgvector store must match.
+2. **Chunkers** — `fixedChunker` + `recursiveChunker` (hand-rolled) **and** `langchainRecursiveChunker` + `langchainTokenChunker` (library baselines) behind one **async** `Chunker` interface. Real tokenization (js-tiktoken) in the LangChain pair; chars/4 heuristic in ours (the comparison measures both).
+3. **Tavily recall** — `searchEvidence(question)` → `Evidence[]` via `@tavily/core` (topic=news, advanced, markdown, days=7); typed-SDK boundary, validates `Evidence` output.
+4. **Voyage embed + rerank** — `embedTexts`/`embedDocuments`/`embedQuery` (128-batch, output-validated) + `rerank()` → `RetrievedChunk[]` (voyage-3.5 / rerank-2.5; input_type document vs query).
+5. **pgvector store** — `PgVectorStore` on **Prisma 7 + `@prisma/adapter-pg`** over **Docker Postgres 17 + pgvector** (`lykos-db`, host **:5433**). `$executeRaw` upsert + `$queryRaw` cosine KNN + hand-added HNSW index. Same contract tests as in-memory, **verified live**.
+6. **Retrieval** — `recency.ts` (exponential time-decay) + `retrieve(question, { store, … })` (embed query → over-fetch candidateK → rerank → recency-reorder → topK).
+7. **Pipeline** — `indexEvidence(evidence, { store, chunker, … })` (chunk → embed → upsert) completes `searchEvidence → indexEvidence → retrieve`.
+
+**Pending in P1:**
+- ⏳ **Live end-to-end demo** — `scratchpad/demo.mjs` runs the whole pipeline on a real market question (Tavily → chunk → Voyage → pgvector → retrieve). Verified through search+chunk live; **blocked on Voyage rate-limit propagation** (free tier 3 RPM / 10K TPM → standard, takes minutes after adding a payment method). **Re-run when the limits lift.**
+- ⬜ **D1 retrieval-relevance eval** — wire the openevals retrieval-relevance judge into `eval/` now that `rag` produces real retrieved contexts (see D1). This is the last P1 item.
+- ⬜ **D14 boilerplate strip** + **D15 embed hardening** — quality/robustness items surfaced this build (see deferred).
+
+**Next major step → P2 `packages/agent`** — the LangGraph.js forecast loop that consumes `retrieve()` (news) + a new `getOrderFlow` tool (on-chain order flow), produces a structured `Forecast`, sizes it with the already-built `decideBet`, and gates on human approval. Detail in P2 below.
 
 ## Upcoming phases (the forward plan)
 
 Detail for the not-yet-built packages, so the plan survives a context compaction. These reflect
 decisions already made in design discussion — written down here, not re-opened.
 
-### P1 · `packages/rag` — retrieval (the learning centerpiece)
+### P1 · `packages/rag` — retrieval (the learning centerpiece) — ✅ BUILT (see Current state)
+The design rationale below is kept for the writeup; the code is done.
+
 **Two-stage retrieval** of the *news* modality: Tavily for web-scale recall, our own embeddings for
 passage-level precision. (Tavily already retrieves — the embedding layer earns its place via
 passage citations, dedup, and cross-market reuse, *not* by replacing Tavily.)
@@ -175,6 +198,17 @@ Each item lists **what**, **why deferred**, the **trigger** to do it, and **wher
   drop markdown link-list / nav lines and very short lines; escalate to a readability/extract
   pass only if eval recall demands it.
 
+### D15 · Embedding rate-limit hardening (token-aware batching + 429 backoff)
+- **What:** `embed.ts` batches by the SDK's 128-input *count* cap but not by a *token* budget, and
+  doesn't retry on `429`. Add (a) token-aware batching — accumulate `Chunk.tokenCount` and flush a
+  batch before the model's per-request token cap (320K for voyage-3.5) — and (b) retry-with-backoff
+  on `429`/transient errors.
+- **Why deferred:** surfaced when the live demo embedded 5 full articles at once and hit Voyage's
+  *free-tier* cap (3 RPM / 10K TPM). The 128-count batching is correct for normal chunk sizes; this
+  is a robustness/production-readiness improvement, not a correctness bug.
+- **Trigger:** before running the pipeline at volume, or if `429`s recur on a paid tier.
+- **Where:** `packages/rag/src/embed.ts` (the batching loop in `embedTexts` + the live `createLiveEmbed`).
+
 ## Decisions (so we don't relitigate them)
 
 - **Model A sizing** — `q` is the honest mean; `confidence` only *shrinks* the bet (fractional Kelly); never overbet full Kelly. Units (1–5) come from edge-aware Kelly, **not** confidence alone.
@@ -189,3 +223,5 @@ Each item lists **what**, **why deferred**, the **trigger** to do it, and **wher
 - **Multi-modal evidence** — the agent forecasts from *news* (RAG) **and** *on-chain order flow* (a `getOrderFlow` tool, tool-first); the rationale must be grounded in both. Order flow explains *who* moved a price, so the agent can update without news and separate informed money from noise.
 - **Sequencing** — ship the core news + on-chain forecast loop first; the additional evidence modalities (D10–D13: cross-venue consensus, resolution scrutiny, category quant, order-book depth) come *after* the core loop works end-to-end.
 - **Agent runtime = TS + LangGraph.js + LangSmith** — the loop is a LangGraph.js `StateGraph` (typed state; `interrupt()` for the HITL approval gate) with LangSmith tracing; keeps the runtime in TS so it reuses `decideBet`/schemas/ingest with no re-port. Evals stay Python; **both trace to one LangSmith project**. (LangGraph is slightly heavy for the v1 linear loop but pays off with the HITL interrupt and the D10–D13 fan-out.)
+- **Vector store = Prisma 7 + driver adapter + Docker pgvector** — Postgres 17 + pgvector in Docker (`docker-compose.yml`, container `lykos-db`, host **port 5433** so it coexists with other local Postgres). Prisma 7 (engine-free) with **`@prisma/adapter-pg`** (the v7 client requires a driver adapter); the connection URL lives in `prisma.config.ts`, not the schema. The `embedding` column is `Unsupported("vector(1024)")` (Prisma has no native vector type) → **read/written only via `$queryRaw`/`$executeRaw`**; `CREATE EXTENSION vector` + the **HNSW `vector_cosine_ops`** index are hand-added to the migration (Prisma can't express either). The generated client (`prisma-client` generator, ESM) emits to `src/generated/` and is gitignored; `build`/`typecheck` run `prisma generate` first. The `VectorStore` interface means callers swap `InMemoryVectorStore` ↔ `PgVectorStore` with no code change. (We deliberately upgraded 6 → 7 to match current tooling.)
+- **Recency weighting** — exponential time-decay: a passage halves its weight every **14 days** (configurable `halfLifeDays`); a missing/unparseable/future `publishedAt` gets weight **1** (don't punish unknown dates). Final rank = `relevance × recencyWeight`, where relevance is the rerank score (or vector similarity if not reranked). Applied to the **full reranked candidate set before the topK cut**, so freshness can change which passages make it, not just their order. `nowMs` is passed in → deterministic.
