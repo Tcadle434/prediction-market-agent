@@ -64,3 +64,10 @@ export type AgentStateType = typeof AgentState.State;
 
 /** A partial update — the shape a node returns. */
 export type AgentStateUpdate = typeof AgentState.Update;
+
+/**
+ * The contract every graph node satisfies: take the current state, return the partial update to
+ * merge in. Async because most nodes await I/O (search, the LLM, the store). Returning `{}` writes
+ * nothing — valid for a stub or a node that has no contribution this run.
+ */
+export type AgentNode = (state: AgentStateType) => Promise<AgentStateUpdate>;
