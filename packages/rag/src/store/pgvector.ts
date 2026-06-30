@@ -13,7 +13,8 @@
  * injection-safe. The embedding column is never SELECTed back (Unsupported columns don't
  * deserialize cleanly). Validation throws [RAG]-prefixed errors, matching the rest of the package.
  */
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaClient } from "../generated/prisma/client.js";
 import type {
 	VectorHit,
 	VectorQuery,
@@ -85,7 +86,9 @@ export class PgVectorStore implements VectorStore {
 		} else {
 			const url = arg?.databaseUrl ?? process.env.DATABASE_URL;
 			if (!url) throw new Error("[RAG] PgVectorStore: DATABASE_URL is not set");
-			this.prisma = new PrismaClient({ datasourceUrl: url });
+			this.prisma = new PrismaClient({
+				adapter: new PrismaPg({ connectionString: url }),
+			});
 			this.ownsClient = true;
 		}
 	}

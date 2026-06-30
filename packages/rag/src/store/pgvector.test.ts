@@ -1,5 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { PrismaClient } from "../generated/prisma/client.js";
 import { EMBEDDING_DIM, PgVectorStore, toVectorLiteral } from "./pgvector.js";
 import type { VectorRecord } from "./vector-store.js";
 
@@ -31,7 +32,9 @@ describe("toVectorLiteral", () => {
 const DB_URL = process.env.DATABASE_URL;
 
 async function probe(url: string): Promise<PrismaClient | null> {
-	const client = new PrismaClient({ datasourceUrl: url });
+	const client = new PrismaClient({
+		adapter: new PrismaPg({ connectionString: url }),
+	});
 	try {
 		await client.$queryRaw`SELECT 1 FROM "chunks" LIMIT 1`;
 		return client;

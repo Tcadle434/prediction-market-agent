@@ -6,6 +6,10 @@ node_modules/
 dist/
 *.tsbuildinfo
 
+# generated Prisma 7 client (run `pnpm --filter @lykos/rag db:generate` to (re)create)
+# biome.json vcs.useIgnoreFile=true → Biome also skips it
+packages/rag/src/generated/
+
 # env / secrets — never commit real keys
 .env
 .env.local

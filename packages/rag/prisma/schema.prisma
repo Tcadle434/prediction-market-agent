@@ -1,21 +1,23 @@
 // Prisma schema for the Lykos vector store (packages/rag).
 //
-// We use the stable `prisma-client-js` generator (client in node_modules, imported as
-// "@prisma/client") rather than the newer .ts-emitting generator — this package compiles
-// under strict verbatimModuleSyntax + noUncheckedIndexedAccess, and we never want generated
-// source inside our `src` include.
+// Prisma 7: the connection URL lives in prisma.config.ts (not in this datasource block),
+// and the client is generated as ESM TypeScript into src/generated/prisma via the
+// `prisma-client` generator (the legacy prisma-client-js generator was removed in v7).
+// The generated dir is gitignored — run `pnpm --filter @lykos/rag db:generate` to (re)create it.
 //
 // Prisma has no native pgvector type, so `embedding` is Unsupported("vector(1024)") and is
 // read/written ONLY via $queryRaw/$executeRaw. The `vector` extension and the HNSW cosine
 // index are added by hand in the migration SQL (Prisma can't express either).
 
 generator client {
-  provider = "prisma-client-js"
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "esm"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model Chunk {
