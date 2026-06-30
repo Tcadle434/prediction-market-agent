@@ -1,0 +1,32 @@
+{
+	"name": "@lykos/agent",
+	"version": "0.0.0",
+	"private": true,
+	"type": "module",
+	"main": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"types": "./dist/index.d.ts",
+			"default": "./dist/index.js"
+		}
+	},
+	"scripts": {
+		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"test": "vitest run"
+	},
+	"dependencies": {
+		"@langchain/anthropic": "^1.5.1",
+		"@langchain/core": "^1.2.1",
+		"@langchain/langgraph": "^1.4.7",
+		"@lykos/core": "workspace:*",
+		"@lykos/rag": "workspace:*",
+		"@lykos/sizing": "workspace:*",
+		"langsmith": "^0.7.13",
+		"zod": "^3.23.8"
+	},
+	"devDependencies": {
+		"dotenv": "^17.4.2"
+	}
+}
