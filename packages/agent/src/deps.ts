@@ -1,5 +1,6 @@
 import type { ForecastDeps } from "./nodes/forecast.js";
 import type { GatherNewsDeps } from "./nodes/gather-news.js";
+import type { SizeDeps } from "./nodes/size.js";
 
 /**
  * Injectable dependencies for the forecast loop, grouped by node. Passed to `buildForecastGraph`,
@@ -12,4 +13,6 @@ export interface AgentDeps {
 	gatherNews?: GatherNewsDeps;
 	/** forecast deps: the model. */
 	forecast?: ForecastDeps;
+	/** size deps: the sizing policy + clock. */
+	size?: SizeDeps;
 }

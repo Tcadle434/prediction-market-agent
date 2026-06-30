@@ -20,9 +20,9 @@ import {
 	approvalGate,
 	createForecastNode,
 	createGatherNewsNode,
+	createSizeNode,
 	execute,
 	log,
-	size,
 } from "./nodes/index.js";
 import { AgentState } from "./state.js";
 
@@ -31,7 +31,7 @@ export function buildForecastGraph(deps: AgentDeps = {}) {
 	return new StateGraph(AgentState)
 		.addNode("gatherNews", createGatherNewsNode(deps.gatherNews))
 		.addNode("makeForecast", createForecastNode(deps.forecast))
-		.addNode("size", size)
+		.addNode("size", createSizeNode(deps.size))
 		.addNode("approvalGate", approvalGate)
 		.addNode("execute", execute)
 		.addNode("log", log)
