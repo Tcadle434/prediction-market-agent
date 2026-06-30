@@ -5,6 +5,7 @@
  * the in-memory + pgvector stores, recency weighting, and retrieval orchestration.
  */
 export * from "./chunk/index.js";
+export * from "./clean.js";
 export * from "./embed.js";
 export * from "./pipeline.js";
 export * from "./recency.js";

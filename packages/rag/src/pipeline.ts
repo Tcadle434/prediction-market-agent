@@ -10,6 +10,7 @@
  */
 import type { Chunk, Evidence } from "@lykos/core";
 import type { Chunker } from "./chunk/types.js";
+import { cleanMarkdown } from "./clean.js";
 import { type EmbedBatch, embedDocuments } from "./embed.js";
 import type { VectorRecord, VectorStore } from "./store/vector-store.js";
 
@@ -36,7 +37,9 @@ export async function indexEvidence(
 
 	const chunks: Chunk[] = [];
 	for (const doc of evidence) {
-		chunks.push(...(await chunker.chunk(doc)));
+		// Strip page boilerplate (nav/link lists) before chunking — see clean.ts / roadmap D14.
+		const cleaned: Evidence = { ...doc, content: cleanMarkdown(doc.content) };
+		chunks.push(...(await chunker.chunk(cleaned)));
 	}
 	if (chunks.length === 0) return 0;
 

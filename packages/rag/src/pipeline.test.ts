@@ -80,4 +80,16 @@ describe("indexEvidence", () => {
 		expect(count).toBe(0);
 		expect(await store.count()).toBe(0);
 	});
+
+	it("strips page boilerplate so nav-only evidence indexes nothing", async () => {
+		const store = new InMemoryVectorStore();
+		const navOnly =
+			"* [About](/about) * [Login](/login)\n* [Ads](/ads) * [Help](/help)";
+		const count = await indexEvidence([evidence("nav", navOnly)], {
+			store,
+			chunker: fixedChunker(),
+			embed: fakeEmbed(),
+		});
+		expect(count).toBe(0);
+	});
 });
