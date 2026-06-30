@@ -24,10 +24,13 @@ LLM-as-judge evaluators). Judge defaults to Claude (Anthropic).
 
 Python 3.12 (managed by uv) + two keys.
 
-1. `cp .env.example .env` and fill in:
-   - `LANGSMITH_API_KEY` — free at <https://smith.langchain.com> (Settings → API Keys)
-   - `ANTHROPIC_API_KEY` — the judge model
+1. `cp .env.example .env` and fill in `LANGSMITH_API_KEY` — free at
+   <https://smith.langchain.com> (Settings → API Keys). `ANTHROPIC_API_KEY` (the judge model) is
+   inherited from the repo-root `.env`; only set it here to override.
 2. `uv sync` — creates `.venv` and installs deps.
+
+The harness loads the repo-root `.env` first (shared keys) then `eval/.env` (overlay), and
+**fails fast with a readable message** if a required key is missing — no opaque 401s.
 
 ## Run
 

@@ -6,14 +6,14 @@ from __future__ import annotations
 
 import os
 
-from dotenv import load_dotenv
 from langsmith import Client
 
+from .config import load_env
 from .examples import load_examples
 
 
 def seed(dataset_name: str | None = None) -> str:
-    load_dotenv()
+    load_env()
     dataset_name = dataset_name or os.environ.get("LYKOS_DATASET", "lykos-groundedness")
     client = Client()
 

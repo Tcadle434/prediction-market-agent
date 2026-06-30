@@ -12,9 +12,9 @@ this harness stays the same.
 
 from __future__ import annotations
 
-from dotenv import load_dotenv
 from langsmith import evaluate
 
+from .config import load_env
 from .evaluators import groundedness_evaluator, retrieval_relevance_evaluator
 from .seed_dataset import seed
 
@@ -25,7 +25,7 @@ def echo_target(inputs: dict) -> dict:
 
 
 def main() -> None:
-    load_dotenv()
+    load_env()
     dataset = seed()  # ensure the dataset exists / is up to date
 
     results = evaluate(
