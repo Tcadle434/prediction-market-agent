@@ -11,12 +11,11 @@ agent's calibration against *already-resolved* markets and against the market pr
 
 ## Why this project exists
 
-It's a portfolio piece for AI/Forward-Deployed-Engineer roles. It deliberately demonstrates the
-three things those roles screen hardest for:
+I wanted practice with more real world AI engineering concepts:
 
 1. **A real workflow agent** — not a chatbot. It does a task end-to-end and takes a real action.
 2. **A RAG pipeline** — retrieval, chunking, embeddings, reranking, grounding with citations.
-3. **An eval harness** — the rarest signal. Because prediction markets *resolve*, we get ground
+3. **An eval harness** — Because prediction markets *resolve*, we get ground
    truth for free and can measure **calibration (Brier score)** vs. the market baseline.
 
 ## How it works (data flow)
