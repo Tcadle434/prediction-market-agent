@@ -3,6 +3,7 @@
  *
  * Grows one node at a time: state today; the graph, nodes, and runner as they land.
  */
+export * from "./audit/index.js";
 export * from "./deps.js";
 export * from "./forecast/index.js";
 export * from "./graph.js";

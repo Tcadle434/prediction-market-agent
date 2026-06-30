@@ -18,11 +18,11 @@ import { END, MemorySaver, START, StateGraph } from "@langchain/langgraph";
 import type { AgentDeps } from "./deps.js";
 import {
 	approvalGate,
+	createExecuteNode,
 	createForecastNode,
 	createGatherNewsNode,
+	createLogNode,
 	createSizeNode,
-	execute,
-	log,
 } from "./nodes/index.js";
 import { AgentState } from "./state.js";
 
@@ -39,8 +39,8 @@ export function buildForecastGraph(deps: AgentDeps = {}) {
 		.addNode("makeForecast", createForecastNode(deps.forecast))
 		.addNode("size", createSizeNode(deps.size))
 		.addNode("approvalGate", approvalGate)
-		.addNode("execute", execute)
-		.addNode("log", log)
+		.addNode("execute", createExecuteNode(deps.execute))
+		.addNode("log", createLogNode(deps.log))
 		.addEdge(START, "gatherNews")
 		.addEdge("gatherNews", "makeForecast")
 		.addEdge("makeForecast", "size")

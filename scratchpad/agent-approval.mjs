@@ -10,6 +10,7 @@
 import {
 	approvalCommand,
 	buildForecastGraph,
+	InMemoryAuditLog,
 } from "../packages/agent/dist/index.js";
 
 const market = {
@@ -28,6 +29,9 @@ const market = {
 	source: "polymarket",
 };
 
+// Inject an audit log we can read back after the run.
+const auditLog = new InMemoryAuditLog();
+
 // Fakes: skip real search; return a confident forecast so size produces a real (approval-needing) bet.
 const graph = buildForecastGraph({
 	gatherNews: { search: async () => [] },
@@ -40,6 +44,7 @@ const graph = buildForecastGraph({
 			citedChunkIds: [],
 		}),
 	},
+	log: { sink: auditLog },
 });
 
 const config = { configurable: { thread_id: "approval-demo" } };
@@ -59,3 +64,13 @@ console.log("resumed to completion:");
 console.log("  side    :", result.decision?.side);
 console.log("  units   :", result.decision?.units);
 console.log("  approved:", result.decision?.approved);
+
+console.log("\nexecuted position (paper fill):");
+console.log("  ", JSON.stringify(result.position));
+
+console.log("\naudit trail:");
+for (const record of await auditLog.records()) {
+	console.log(
+		`  #${record.seq} ${record.hash.slice(0, 12)}… (prev ${record.prevHash.slice(0, 8)}…) side=${record.side} units=${record.units} approved=${record.approved} pos=${record.positionId}`,
+	);
+}
