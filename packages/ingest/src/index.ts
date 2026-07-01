@@ -6,6 +6,7 @@ import { gammaToMarket } from "./map.js";
 export * from "./cache.js";
 export * from "./gamma.js";
 export * from "./map.js";
+export * from "./trades.js";
 
 /**
  * Fetch markets from Gamma and map them into validated domain Markets.

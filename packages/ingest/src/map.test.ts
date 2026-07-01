@@ -29,6 +29,13 @@ describe("gammaToMarket", () => {
 		expect(m.outcomes[1]!.price).toBeCloseTo(0.9995);
 	});
 
+	it("threads the on-chain conditionId through, or null when absent", () => {
+		expect(gammaToMarket(raw({ conditionId: "0xabc" }))!.conditionId).toBe(
+			"0xabc",
+		);
+		expect(gammaToMarket(raw())!.conditionId).toBeNull();
+	});
+
 	it("derives Yes bid/ask from the book and the No side as the complement", () => {
 		const m = gammaToMarket(raw({ bestBid: 0.3, bestAsk: 0.35 }))!;
 		expect(m.outcomes[0]!.bid).toBeCloseTo(0.3);

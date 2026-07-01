@@ -28,6 +28,10 @@ export type MarketStatus = z.infer<typeof MarketStatusSchema>;
 // winning outcome name — that is our ground truth for the eval harness.
 export const MarketSchema = z.object({
 	id: z.string(),
+	// The market's canonical on-chain identifier (Polymarket condition id). Optional
+	// because only real Polymarket markets have one — synthetic/test markets don't. It's
+	// what the on-chain trade feed (order flow) keys on.
+	conditionId: z.string().nullable().optional(),
 	question: z.string(),
 	description: z.string().default(""),
 	resolutionCriteria: z.string().default(""),

@@ -24,6 +24,11 @@ const EnvSchema = z.object({
 		.string()
 		.url()
 		.default("https://gamma-api.polymarket.com"),
+	// Public read-only on-chain trade feed (order flow). Keyless, like Gamma.
+	POLYMARKET_DATA_URL: z
+		.string()
+		.url()
+		.default("https://data-api.polymarket.com"),
 });
 
 export type Config = z.infer<typeof EnvSchema>;

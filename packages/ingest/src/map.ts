@@ -72,6 +72,7 @@ export function gammaToMarket(raw: GammaMarket): Market | null {
 
 	const candidate = {
 		id: raw.id,
+		conditionId: raw.conditionId ?? null,
 		question: raw.question,
 		description: raw.description ?? "",
 		resolutionCriteria: "",

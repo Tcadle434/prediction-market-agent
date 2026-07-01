@@ -15,6 +15,7 @@ import { z } from "zod";
 
 export const GammaMarketSchema = z.object({
 	id: z.union([z.string(), z.number()]).transform((v) => String(v)),
+	conditionId: z.string().optional(), // on-chain condition id — keys the trade feed
 	question: z.string(),
 	description: z.string().optional().default(""),
 	slug: z.string().optional(),
