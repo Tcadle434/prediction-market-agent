@@ -16,6 +16,7 @@ import {
 	buildForecastGraph,
 	InMemoryAuditLog,
 } from "../packages/agent/dist/index.js";
+import { DEFAULT_SIZING_POLICY } from "../packages/core/dist/index.js";
 import { fetchMarkets } from "../packages/ingest/dist/index.js";
 
 const wantedId = process.argv[2];
@@ -41,7 +42,18 @@ console.log(
 );
 
 const auditLog = new InMemoryAuditLog();
-const graph = buildForecastGraph({ log: { sink: auditLog } });
+// Demo knob: LYKOS_MIN_EDGE lowers the min-edge gate so a marginal edge still clears it and you
+// can see the approval flow. Efficient markets rarely give a ≥4-point edge (the default gate), so
+// the honest outcome is usually no-bet. This only relaxes the threshold; the forecast stays real.
+const minEdge = process.env.LYKOS_MIN_EDGE
+	? Number(process.env.LYKOS_MIN_EDGE)
+	: undefined;
+const graph = buildForecastGraph({
+	log: { sink: auditLog },
+	...(minEdge !== undefined
+		? { size: { policy: { ...DEFAULT_SIZING_POLICY, minEdge } } }
+		: {}),
+});
 const config = { configurable: { thread_id: `live-${market.id}` } };
 
 console.log("researching + forecasting (Tavily → Voyage → Claude)…\n");
